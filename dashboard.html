@@ -750,12 +750,14 @@
     };
     const selectedAreas = () => powerBIState.filters.areas;
     const defaultMonth = data => {
-        const metadataMonth = data?.metadata?.filters?.mesA;
-        if (metadataMonth) return metadataMonth;
         const activeMonths = getMonthRows(data)
             .filter(hasValue)
             .map(row => dimension(row, 'Calendario[MesA]'));
-        return sortMonths(activeMonths).pop() || powerBIState.options.meses[0] || '';
+        const sortedActive = sortMonths(activeMonths);
+        const metadataMonth = data?.metadata?.filters?.mesA;
+        // Usar el mes del metadata solo si realmente tiene datos; si no, usar el último mes con valores
+        if (metadataMonth && sortedActive.includes(metadataMonth)) return metadataMonth;
+        return sortedActive.pop() || powerBIState.options.meses[0] || '';
     };
 
     function updateAreaLabel() {
