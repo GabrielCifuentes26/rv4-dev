@@ -1609,9 +1609,9 @@
         if (!detailRows.length) {
             return optionValues(powerBIState.data, config);
         }
-        const values = detailRows.map(row => filterDimension(row, config));
-        const options = uniqueNonBlankSorted(values);
-        return options;
+        // Cascade: solo muestra opciones válidas según los demás filtros activos
+        const cascadedRows = detailRows.filter(row => rowPassesOptionFilters(row, config.key));
+        return uniqueNonBlankSorted(cascadedRows.map(row => filterDimension(row, config)));
     }
 
     function snapshotFilterSelections() {
