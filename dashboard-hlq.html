@@ -1638,8 +1638,8 @@
             if (changedKey && config.key === changedKey) {
                 powerBIState.filters[config.key] = selected;
             } else if (!changedKey && !prior.hadOptions && prior.wasEmpty) {
-                // Carga inicial → seleccionar todo explícitamente (Todas)
-                powerBIState.filters[config.key] = [...options];
+                // Carga inicial — MESES selecciona todo; el resto arranca vacío (= Todas, Power BI style)
+                powerBIState.filters[config.key] = config.key === 'meses' ? [...options] : [];
             } else if (prior.wasAll) {
                 // Estaba en "Todas" → mantener "Todas" con el nuevo set de opciones
                 powerBIState.filters[config.key] = [...options];
@@ -2545,8 +2545,8 @@
 
     function renderPowerBIResumen(data) {
         powerBIState.data = data;
-        powerBIState.filters = { areas: [], segmentos: [], fases: [], meses: [] };
-        powerBIState.options = { areas: [], segmentos: [], fases: [], meses: [] };
+        powerBIState.filters = { areas: [], segmentos: [], etapas: [], fases: [], meses: [] };
+        powerBIState.options = { areas: [], segmentos: [], etapas: [], fases: [], meses: [] };
         bindPowerBIFilters();
         initSearch();
         bindKpiCards();
