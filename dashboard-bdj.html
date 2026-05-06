@@ -2065,7 +2065,7 @@
             const expandable = segRows.length > 0;
 
             // Level 1
-            html += `<tr class="tr-l1${expandable ? ' tr-expandable' : ''}" data-ai="${ai}" data-rawname="${rawName}">
+            html += `<tr class="tr-l1${expandable ? ' tr-expandable' : ''}" data-ai="${ai}">
                 <td class="td-l1">
                     ${expandable ? '<span class="row-chev"></span>' : '<span class="row-chev-ph"></span>'}
                     <span class="row-dot" style="background:${cfg.color}22;border:2px solid ${cfg.color}"></span>
@@ -2080,7 +2080,7 @@
                 const etapaRows = groupRowsBy(segDetail, 'Rubros[Etapa]').filter(e => e.label);
                 const segExp = etapaRows.length > 0;
 
-                html += `<tr class="tr-l2 tr-child${segExp ? ' tr-expandable' : ''} tr-hidden" data-ai="${ai}" data-si="${si}" data-rawseg="${segName}">
+                html += `<tr class="tr-l2 tr-child${segExp ? ' tr-expandable' : ''} tr-hidden" data-ai="${ai}" data-si="${si}">
                     <td class="td-l2" style="border-left:3px solid ${cfg.color}">
                         ${segExp ? '<span class="row-chev"></span>' : '<span class="row-chev-ph"></span>'}
                         ${escapeHtml(segName)}
@@ -2575,16 +2575,6 @@
             if (label) applyChartFilter('meses', label, null);
         });
 
-        // ── Tabla → Área (tr-l1) o Segmento (tr-l2) ─────────────
-        document.getElementById('resumen-area-body').addEventListener('click', e => {
-            const row = e.target.closest('tr');
-            if (!row || row.classList.contains('total-row')) return;
-            if (row.classList.contains('tr-l1') && row.dataset.rawname) {
-                applyChartFilter('areas', row.dataset.rawname, row);
-            } else if (row.classList.contains('tr-l2') && row.dataset.rawseg) {
-                applyChartFilter('segmentos', row.dataset.rawseg, row);
-            }
-        });
     }
     // ── /Chart-click filters ─────────────────────────────────────
 
