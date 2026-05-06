@@ -661,9 +661,12 @@
         .td-l2 { padding-left: 30px !important; font-size: 0.71rem !important; color: var(--gray) !important; }
         .tr-l2 td:not(:first-child) { color: var(--gray); font-size: 0.71rem; }
         /* Level 3 — Etapa */
-        .tr-l3 { background: #f1f5f9 !important; }
-        .td-l3 { padding-left: 52px !important; font-size: 0.69rem !important; color: var(--gray2) !important; font-weight: 400 !important; }
-        .tr-l3 td:not(:first-child) { color: var(--gray2); font-size: 0.69rem; }
+        .tr-l3 { background: #eef2f7 !important; }
+        .td-l3 { padding-left: 52px !important; font-size: 0.71rem !important; color: #475569 !important; font-weight: 500 !important; }
+        .tr-l3 td:not(:first-child) { color: #475569; font-size: 0.71rem; }
+        /* Table row selection */
+        #resumen-area-body tr.tr-row-selected > td { background: rgba(201,168,76,0.10) !important; box-shadow: inset 3px 0 0 rgba(201,168,76,0.75); cursor: pointer; }
+        #resumen-area-body tr.tr-dimmed > td { opacity: 0.22; transition: opacity 0.18s; }
         /* Search mode */
         .search-lvl-badge {
             display: inline-block;
@@ -1639,8 +1642,8 @@
             if (changedKey && config.key === changedKey) {
                 powerBIState.filters[config.key] = selected;
             } else if (!changedKey && !prior.hadOptions && prior.wasEmpty) {
-                // Carga inicial → seleccionar todo explícitamente (Todas)
-                powerBIState.filters[config.key] = [...options];
+                // Carga inicial — MESES selecciona todo; el resto arranca vacío (= Todas, Power BI style)
+                powerBIState.filters[config.key] = config.key === 'meses' ? [...options] : [];
             } else if (prior.wasAll) {
                 // Estaba en "Todas" → mantener "Todas" con el nuevo set de opciones
                 powerBIState.filters[config.key] = [...options];
@@ -1667,6 +1670,8 @@
 
     let searchQuery = '';
     let kpiFilter = null; // 'ejecutado'|'comprometido'|'asignado'|'disponible'|null
+    let tableSelection = null;
+    const tableRowMeta = {};
 
     const KPI_FILTER_FIELD = {
         ejecutado:    'EjecutadoErequester',
@@ -2063,6 +2068,7 @@
                 segRows = groupRowsBy(areaDetail, 'Rubros[Segmento]');
             }
             const expandable = segRows.length > 0;
+            tableRowMeta[`${ai}`] = rawName;
 
             // Level 1
             html += `<tr class="tr-l1${expandable ? ' tr-expandable' : ''}" data-ai="${ai}">
@@ -2079,6 +2085,7 @@
                     String(dimension(r, 'Rubros[Segmento]') || '').trim() === segName);
                 const etapaRows = groupRowsBy(segDetail, 'Rubros[Etapa]').filter(e => e.label);
                 const segExp = etapaRows.length > 0;
+                tableRowMeta[`${ai}_${si}`] = segName;
 
                 html += `<tr class="tr-l2 tr-child${segExp ? ' tr-expandable' : ''} tr-hidden" data-ai="${ai}" data-si="${si}">
                     <td class="td-l2" style="border-left:3px solid ${cfg.color}">
@@ -2087,8 +2094,9 @@
                     </td>${metricCells(segRow)}</tr>`;
 
                 // Level 3 — Etapas
-                etapaRows.forEach(etRow => {
-                    html += `<tr class="tr-l3 tr-child tr-hidden" data-ai="${ai}" data-si="${si}">
+                etapaRows.forEach((etRow, ei) => {
+                    tableRowMeta[`${ai}_${si}_${ei}`] = String(etRow.label || '').trim();
+                    html += `<tr class="tr-l3 tr-child tr-hidden" data-ai="${ai}" data-si="${si}" data-ei="${ei}">
                         <td class="td-l3" style="border-left:3px solid ${cfg.color}44">
                             ${escapeHtml(etRow.label)}
                         </td>${metricCells(etRow)}</tr>`;
@@ -2113,64 +2121,142 @@
     }
 
     function bindTableDrill(tbody) {
+        if (tbody.dataset.drillBound) return;
+        tbody.dataset.drillBound = '1';
         tbody.addEventListener('click', e => {
-            const tr = e.target.closest('tr.tr-expandable');
-            if (!tr) return;
-            const ai = tr.dataset.ai;
-            const si = tr.dataset.si;
-            const isL1 = tr.classList.contains('tr-l1');
-            const isOpen = tr.classList.contains('expanded');
-
-            if (isL1) {
-                // Accordion: close other open areas
-                tbody.querySelectorAll('.tr-l1.expanded').forEach(other => {
-                    if (other === tr) return;
-                    const oai = other.dataset.ai;
-                    other.classList.remove('expanded');
-                    tbody.querySelectorAll(`.tr-child[data-ai="${oai}"]`).forEach(c => {
-                        c.classList.add('tr-hidden');
-                        c.classList.remove('expanded', 'tr-anim');
-                    });
-                });
-                if (isOpen) {
-                    tr.classList.remove('expanded');
-                    tbody.querySelectorAll(`.tr-child[data-ai="${ai}"]`).forEach(c => {
-                        c.classList.add('tr-hidden');
-                        c.classList.remove('expanded', 'tr-anim');
-                    });
-                } else {
-                    tr.classList.add('expanded');
-                    tbody.querySelectorAll(`.tr-l2[data-ai="${ai}"]`).forEach(c => {
-                        c.classList.remove('tr-hidden');
-                        void c.offsetWidth; // force reflow for animation restart
-                        c.classList.add('tr-anim');
-                    });
-                }
-            } else {
-                // Segmento accordion within same area
-                tbody.querySelectorAll(`.tr-l2.expanded[data-ai="${ai}"]`).forEach(other => {
-                    if (other === tr) return;
-                    const osi = other.dataset.si;
-                    other.classList.remove('expanded');
-                    tbody.querySelectorAll(`.tr-l3[data-ai="${ai}"][data-si="${osi}"]`).forEach(c => {
-                        c.classList.add('tr-hidden');
-                        c.classList.remove('tr-anim');
-                    });
-                });
-                if (isOpen) {
-                    tr.classList.remove('expanded');
-                    tbody.querySelectorAll(`.tr-l3[data-ai="${ai}"][data-si="${si}"]`).forEach(c =>
-                        c.classList.add('tr-hidden'));
-                } else {
-                    tr.classList.add('expanded');
-                    tbody.querySelectorAll(`.tr-l3[data-ai="${ai}"][data-si="${si}"]`).forEach(c => {
-                        c.classList.remove('tr-hidden');
-                        void c.offsetWidth;
-                        c.classList.add('tr-anim');
-                    });
-                }
+            const tr = e.target.closest('tr');
+            if (!tr || tr.classList.contains('total-row')) return;
+            const onChevron = !!e.target.closest('.row-chev');
+            if (onChevron && tr.classList.contains('tr-expandable')) {
+                handleExpand(tbody, tr);
+            } else if (!onChevron) {
+                handleRowSelect(tbody, tr);
             }
         });
+    }
+
+    function handleExpand(tbody, tr) {
+        const ai = tr.dataset.ai;
+        const si = tr.dataset.si;
+        const isL1 = tr.classList.contains('tr-l1');
+        const isOpen = tr.classList.contains('expanded');
+        if (isL1) {
+            tbody.querySelectorAll('.tr-l1.expanded').forEach(other => {
+                if (other === tr) return;
+                const oai = other.dataset.ai;
+                other.classList.remove('expanded');
+                tbody.querySelectorAll(`.tr-child[data-ai="${oai}"]`).forEach(c => {
+                    c.classList.add('tr-hidden');
+                    c.classList.remove('expanded', 'tr-anim');
+                });
+            });
+            if (isOpen) {
+                tr.classList.remove('expanded');
+                tbody.querySelectorAll(`.tr-child[data-ai="${ai}"]`).forEach(c => {
+                    c.classList.add('tr-hidden');
+                    c.classList.remove('expanded', 'tr-anim');
+                });
+            } else {
+                tr.classList.add('expanded');
+                tbody.querySelectorAll(`.tr-l2[data-ai="${ai}"]`).forEach(c => {
+                    c.classList.remove('tr-hidden');
+                    void c.offsetWidth;
+                    c.classList.add('tr-anim');
+                });
+            }
+        } else {
+            tbody.querySelectorAll(`.tr-l2.expanded[data-ai="${ai}"]`).forEach(other => {
+                if (other === tr) return;
+                const osi = other.dataset.si;
+                other.classList.remove('expanded');
+                tbody.querySelectorAll(`.tr-l3[data-ai="${ai}"][data-si="${osi}"]`).forEach(c => {
+                    c.classList.add('tr-hidden');
+                    c.classList.remove('tr-anim');
+                });
+            });
+            if (isOpen) {
+                tr.classList.remove('expanded');
+                tbody.querySelectorAll(`.tr-l3[data-ai="${ai}"][data-si="${si}"]`).forEach(c =>
+                    c.classList.add('tr-hidden'));
+            } else {
+                tr.classList.add('expanded');
+                tbody.querySelectorAll(`.tr-l3[data-ai="${ai}"][data-si="${si}"]`).forEach(c => {
+                    c.classList.remove('tr-hidden');
+                    void c.offsetWidth;
+                    c.classList.add('tr-anim');
+                });
+            }
+        }
+    }
+
+    function handleRowSelect(tbody, tr) {
+        const ai = tr.dataset.ai;
+        const si = tr.dataset.si;
+        const ei = tr.dataset.ei;
+        const isL1 = tr.classList.contains('tr-l1');
+        const isL2 = tr.classList.contains('tr-l2');
+        const isL3 = tr.classList.contains('tr-l3');
+        if (!isL1 && !isL2 && !isL3) return;
+
+        const key = isL3 ? `${ai}_${si}_${ei}` : isL2 ? `${ai}_${si}` : `${ai}`;
+
+        if (tableSelection && tableSelection.key === key) {
+            clearTableSelection();
+            return;
+        }
+
+        tableSelection = {
+            key,
+            level: isL1 ? 1 : isL2 ? 2 : 3,
+            areaName:  tableRowMeta[`${ai}`] || null,
+            segName:   (isL2 || isL3) ? tableRowMeta[`${ai}_${si}`] || null : null,
+            etapaName: isL3 ? tableRowMeta[key] || null : null
+        };
+
+        tbody.querySelectorAll('tr').forEach(r => {
+            r.classList.remove('tr-row-selected');
+            if (!r.classList.contains('total-row')) r.classList.add('tr-dimmed');
+        });
+        tr.classList.remove('tr-dimmed');
+        tr.classList.add('tr-row-selected');
+        if (isL1) {
+            tbody.querySelectorAll(`.tr-child[data-ai="${ai}"]`).forEach(r => r.classList.remove('tr-dimmed'));
+        } else if (isL2) {
+            tbody.querySelectorAll(`.tr-l1[data-ai="${ai}"]`).forEach(r => r.classList.remove('tr-dimmed'));
+        } else if (isL3) {
+            tbody.querySelectorAll(`.tr-l1[data-ai="${ai}"]`).forEach(r => r.classList.remove('tr-dimmed'));
+            tbody.querySelectorAll(`.tr-l2[data-ai="${ai}"][data-si="${si}"]`).forEach(r => r.classList.remove('tr-dimmed'));
+        }
+
+        applySelectionRender();
+    }
+
+    function applySelectionRender() {
+        if (!tableSelection) return;
+        const allRows = filteredDetailRows();
+        let sel;
+        if (tableSelection.level === 1) {
+            sel = allRows.filter(r =>
+                String(dimension(r, 'Rubros[Area]') || '').toUpperCase().trim() === tableSelection.areaName);
+        } else if (tableSelection.level === 2) {
+            sel = allRows.filter(r =>
+                String(dimension(r, 'Rubros[Segmento]') || '').trim() === tableSelection.segName);
+        } else {
+            sel = allRows.filter(r =>
+                String(dimension(r, 'Rubros[Etapa]') || '').trim() === tableSelection.etapaName);
+        }
+        const totals = aggregateDetailRows(sel);
+        const etapaR = groupRowsBy(sel, 'Rubros[Etapa]');
+        const areaR  = groupRowsBy(sel, 'Rubros[Area]');
+        const segR   = groupRowsBy(sel, 'Rubros[Segmento]');
+        renderMetrics(totals);
+        renderCharts(etapaR, areaR, segR);
+        renderTendenciaFase(sel);
+    }
+
+    function clearTableSelection() {
+        tableSelection = null;
+        renderPowerBIView();
     }
 
     const FASE_PALETTE = ['#3b5bdb','#10b981','#f59e0b','#8b5cf6','#ef4444','#0ea5e9','#f97316'];
@@ -2424,6 +2510,7 @@
     }
 
     function renderPowerBIView() {
+        tableSelection = null;
         const data = powerBIState.data;
         const datasets = data?.datasets || {};
         const detailRows = getDetailRows(data);
