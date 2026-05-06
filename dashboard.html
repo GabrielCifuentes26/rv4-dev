@@ -749,13 +749,13 @@
         return uniqueSorted((data?.datasets?.[fallbackDataset] || []).map(row => dimension(row, fallbackDimension || detailName)));
     };
     const selectedAreas = () => powerBIState.filters.areas;
+    const hasRealData = row => Math.abs(field(row, 'AsignadoErequester')) > 0 || Math.abs(field(row, 'EjecutadoErequester')) > 0;
     const defaultMonth = data => {
         const activeMonths = getMonthRows(data)
-            .filter(hasValue)
+            .filter(hasRealData)
             .map(row => dimension(row, 'Calendario[MesA]'));
         const sortedActive = sortMonths(activeMonths);
         const metadataMonth = data?.metadata?.filters?.mesA;
-        // Usar el mes del metadata solo si realmente tiene datos; si no, usar el último mes con valores
         if (metadataMonth && sortedActive.includes(metadataMonth)) return metadataMonth;
         return sortedActive.pop() || powerBIState.options.meses[0] || '';
     };
@@ -845,7 +845,7 @@
         powerBIState.options.segmentos = optionValues(data, 'Rubros[Segmento]', 'porSegmento');
         powerBIState.options.etapas = optionValues(data, 'Rubros[Etapa]', 'porEtapa');
         powerBIState.options.fases = optionValues(data, 'Rubros[Fase]', 'porFase');
-        powerBIState.options.meses = sortMonths(getMonthRows(data).map(row => dimension(row, 'Calendario[MesA]')));
+        powerBIState.options.meses = sortMonths(getMonthRows(data).filter(hasRealData).map(row => dimension(row, 'Calendario[MesA]')));
 
         if (!powerBIState.filters.areas.length) powerBIState.filters.areas = [...powerBIState.options.areas];
         powerBIState.filters.areas = powerBIState.filters.areas.filter(area => powerBIState.options.areas.includes(area));
