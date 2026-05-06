@@ -1441,8 +1441,7 @@
         const selected = powerBIState.filters[config.key] || [];
         const options = powerBIState.options[config.optionKey] || [];
         if (!selected.length) {
-            // empty = cleared / sin restricción (igual muestra todos los datos)
-            label.textContent = 'Ninguna';
+            label.textContent = config.key === 'meses' ? 'Todos' : 'Todas';
         } else if (selected.length === options.length) {
             label.textContent = config.key === 'meses' ? 'Todos' : 'Todas';
         } else if (selected.length <= 2) {
@@ -1616,8 +1615,8 @@
             if (changedKey && config.key === changedKey) {
                 powerBIState.filters[config.key] = selected;
             } else if (!changedKey && !prior.hadOptions && prior.wasEmpty) {
-                // Carga inicial: Meses arranca en Ninguna; el resto selecciona todo
-                powerBIState.filters[config.key] = config.key === 'meses' ? [] : [...options];
+                // Carga inicial — MESES selecciona todo; el resto arranca vacío (= Todas, Power BI style)
+                powerBIState.filters[config.key] = config.key === 'meses' ? [...options] : [];
             } else if (prior.wasAll) {
                 // Estaba en "Todas" → mantener "Todas" con el nuevo set de opciones
                 powerBIState.filters[config.key] = [...options];

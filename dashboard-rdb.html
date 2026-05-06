@@ -1469,8 +1469,7 @@
         const selected = powerBIState.filters[config.key] || [];
         const options = powerBIState.options[config.optionKey] || [];
         if (!selected.length) {
-            // empty = cleared / sin restricción (igual muestra todos los datos)
-            label.textContent = 'Ninguna';
+            label.textContent = config.key === 'meses' ? 'Todos' : 'Todas';
         } else if (selected.length === options.length) {
             label.textContent = config.key === 'meses' ? 'Todos' : 'Todas';
         } else if (selected.length <= 2) {
