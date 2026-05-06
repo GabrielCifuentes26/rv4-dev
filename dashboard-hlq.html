@@ -1609,9 +1609,7 @@
         if (!detailRows.length) {
             return optionValues(powerBIState.data, config);
         }
-        const values = detailRows
-            .filter(row => rowPassesOptionFilters(row, config.key))
-            .map(row => filterDimension(row, config));
+        const values = detailRows.map(row => filterDimension(row, config));
         const options = uniqueNonBlankSorted(values);
         return options;
     }
