@@ -2128,8 +2128,9 @@
             const onChevron = !!e.target.closest('.row-chev');
             if (onChevron && tr.classList.contains('tr-expandable')) {
                 handleExpand(tbody, tr);
+            } else if (!onChevron) {
+                handleRowSelect(tbody, tr);
             }
-            handleRowSelect(tbody, tr);
         });
     }
 
