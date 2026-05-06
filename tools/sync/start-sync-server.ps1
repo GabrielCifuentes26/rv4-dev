@@ -1,6 +1,6 @@
 $port       = 8765
 $statusFile = "$env:TEMP\rv4-sync-status.json"
-$syncScript = Join-Path $PSScriptRoot "sync-all-projects.ps1"
+$syncScript = Resolve-Path (Join-Path $PSScriptRoot "SINCRONIZAR-TODOS.ps1")
 
 function Write-Status {
     param([string]$State, [string]$Message)
@@ -11,19 +11,6 @@ function Write-Status {
 function Get-StatusJson {
     if (Test-Path $statusFile) { return Get-Content $statusFile -Raw -Encoding UTF8 }
     return '{"state":"idle","message":"Servidor listo","updatedAt":""}'
-}
-
-function Get-FreshPbiToken {
-    try { return (Get-PowerBIAccessToken -ErrorAction Stop).Token } catch { return "" }
-}
-
-# Autenticar con Power BI al iniciar el servidor
-Write-Host "[RV4 Server] Autenticando con Power BI..." -ForegroundColor Yellow
-try {
-    Connect-PowerBIServiceAccount | Out-Null
-    Write-Host "[RV4 Server] Autenticacion exitosa." -ForegroundColor Green
-} catch {
-    Write-Warning "[RV4 Server] No se pudo autenticar con Power BI: $_"
 }
 
 Write-Status -State "idle" -Message "Servidor listo"
@@ -62,28 +49,13 @@ while ($listener.IsListening) {
                 if ($cur.state -eq "running") {
                     '{"state":"running","message":"Ya hay una sincronizacion en progreso"}'
                 } else {
-                    Write-Status -State "running" -Message "Iniciando sincronizacion..."
+                    Write-Status -State "running" -Message "Abre el navegador e inicia sesion con tu cuenta Microsoft..."
 
-                    # Obtener token fresco antes de lanzar el job
-                    $pbiToken = Get-FreshPbiToken
+                    # Abre una ventana de PowerShell visible para que el usuario pueda iniciar sesion
+                    $args = "-ExecutionPolicy Bypass -File `"$syncScript`" -StatusFile `"$statusFile`""
+                    Start-Process powershell.exe -ArgumentList $args
 
-                    Start-Job -ScriptBlock {
-                        param($script, $file, $key, $token)
-                        $env:SUPABASE_SERVICE_ROLE_KEY = $key
-                        if (-not [string]::IsNullOrWhiteSpace($token)) {
-                            $env:PBI_ACCESS_TOKEN = $token
-                        }
-                        try {
-                            & $script
-                            @{ state="completed"; message="Dashboards actualizados correctamente"; updatedAt=(Get-Date -Format "dd/MM/yyyy HH:mm") } |
-                                ConvertTo-Json | Set-Content $file -Encoding UTF8
-                        } catch {
-                            @{ state="error"; message=$_.Exception.Message; updatedAt=(Get-Date -Format "dd/MM/yyyy HH:mm") } |
-                                ConvertTo-Json | Set-Content $file -Encoding UTF8
-                        }
-                    } -ArgumentList $syncScript, $statusFile, $env:SUPABASE_SERVICE_ROLE_KEY, $pbiToken | Out-Null
-
-                    '{"state":"running","message":"Sincronizacion iniciada"}'
+                    '{"state":"running","message":"Se abrio PowerShell. Inicia sesion en el navegador para continuar."}'
                 }
             }
 
