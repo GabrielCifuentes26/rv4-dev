@@ -1538,26 +1538,21 @@
     }
 
     function buildFilterOptions(config) {
+        if (config.key === 'meses') {
+            const values = uniqueNonBlankSorted((powerBIState.data?.datasets?.[config.fallbackDataset] || [])
+                .filter(hasRealData)
+                .map(row => dimension(row, config.dimensionName)));
+            return sortMonths(values);
+        }
         const detailRows = getDetailRows(powerBIState.data);
         if (!detailRows.length) {
-            if (config.key === 'meses') {
-                const values = uniqueNonBlankSorted((powerBIState.data?.datasets?.[config.fallbackDataset] || [])
-                    .filter(hasRealData)
-                    .map(row => dimension(row, config.dimensionName)));
-                return sortMonths(values);
-            }
             return optionValues(powerBIState.data, config);
         }
-
         const values = detailRows
-            .filter(row => {
-                if (config.key === 'meses' && !filterDimension(row, config)) return false;
-                if (config.key === 'meses' && !hasRealData(row)) return false;
-                return rowPassesOptionFilters(row, config.key);
-            })
+            .filter(row => rowPassesOptionFilters(row, config.key))
             .map(row => filterDimension(row, config));
         const options = uniqueNonBlankSorted(values);
-        return config.key === 'meses' ? sortMonths(options) : options;
+        return options;
     }
 
     function snapshotFilterSelections() {
