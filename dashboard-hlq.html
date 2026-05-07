@@ -2327,28 +2327,23 @@
         dims.forEach(d => { matrix[d] = {}; meses.forEach(m => { matrix[d][m] = 0; }); });
 
         if (tendenciaMetric === 'DisponibleErequester' || tendenciaMetric === 'PresupuestoErequester') {
-            // Budget metrics: deduplicar PresupuestoErequester por budget key
-            const budgetByDim = {};
-            const seenByDim  = {};
-            const asigByDim  = {};
-            dims.forEach(d => { budgetByDim[d] = 0; seenByDim[d] = new Set(); asigByDim[d] = {}; meses.forEach(m => { asigByDim[d][m] = 0; }); });
+            // Usar groupRowsBy (misma lógica que la tabla) para obtener budget correcto por dimensión
+            const dimGroups = groupRowsBy(rows, dimKey);
+            const budgetByDim = Object.fromEntries(dimGroups.map(g => [g.label, asNumber(g.PresupuestoErequester)]));
+            const asigByDim = {};
+            dims.forEach(d => { asigByDim[d] = {}; meses.forEach(m => { asigByDim[d][m] = 0; }); });
             rows.forEach(r => {
                 const d = String(dimension(r, dimKey) || '').trim();
                 const m = String(dimension(r, 'Calendario[MesA]') || '').trim();
-                if (!d || !m) return;
-                const bk = budgetKey(r);
-                if (!seenByDim[d].has(bk)) {
-                    budgetByDim[d] += asNumber(field(r, 'PresupuestoErequester'));
-                    seenByDim[d].add(bk);
-                }
-                if (asigByDim[d]?.[m] !== undefined)
-                    asigByDim[d][m] += asNumber(field(r, 'AsignadoErequester'));
+                if (!d || !m || !asigByDim[d]) return;
+                asigByDim[d][m] += asNumber(field(r, 'AsignadoErequester'));
             });
             dims.forEach(d => {
+                const budget = budgetByDim[d] || 0;
                 meses.forEach(m => {
                     matrix[d][m] = tendenciaMetric === 'PresupuestoErequester'
-                        ? budgetByDim[d]
-                        : Math.max(0, budgetByDim[d] - asigByDim[d][m]);
+                        ? budget
+                        : Math.max(0, budget - asigByDim[d][m]);
                 });
             });
         } else {
