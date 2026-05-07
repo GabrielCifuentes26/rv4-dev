@@ -1077,7 +1077,7 @@
             const rawName = String(row.label || dimension(row, 'Rubros[Area]') || '').toUpperCase().trim();
             const label = displayName(rawName) || rawName;
             const cfg = AREA_CONFIG[rawName] || DEFAULT_AREA_CFG;
-            const rdi        = asNumber(rowMetric(row, 'RdiTotal'));
+            const rdi        = asNumber(rowMetric(row, 'RdiTotal')) || asNumber(rowMetric(row, 'PresupuestoErequester'));
             const ejecutado  = asNumber(rowMetric(row, 'EjecutadoErequester'));
             const comprom    = asNumber(rowMetric(row, 'ComprometidoErequester'));
             const disponible = asNumber(rowMetric(row, 'DisponibleErequester'));
