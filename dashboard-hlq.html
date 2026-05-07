@@ -102,25 +102,25 @@
         .eac-dot-comp { background: var(--c-comprometido); }
         .eac-dot-asig { background: #0f172a; border-radius: 2px; }
         .eac-dot-disp { background: #c8d0db; }
-        /* Regla Asignado "|————|" debajo de la barra */
-        .eac-asig-wrap { position: relative; height: 26px; margin-top: 4px; overflow: visible; }
+        /* Bracket invertido "⌊——⌋" — línea abajo, palitos hacia arriba */
+        .eac-asig-wrap { position: relative; height: 26px; margin-top: 3px; overflow: visible; }
         .eac-asig-bracket {
-            position: absolute; left: 0; top: 4px;
+            position: absolute; left: 0; top: 0;
             height: 10px;
-            border-top: 2px solid #64748b;
+            border-bottom: 2px solid #64748b;
             border-left: 2.5px solid #64748b;
             border-right: 2.5px solid #64748b;
             box-sizing: border-box;
             min-width: 8px;
         }
         .eac-asig-val {
-            position: absolute; top: 15px;
+            position: absolute; top: 13px;
             transform: translateX(-50%);
             font-size: 0.65rem; font-weight: 700; color: #334155;
             white-space: nowrap;
         }
         .eac-pct-header { font-size: 0.7rem; font-weight: 700; color: var(--gray); white-space: nowrap; }
-        .eac-rows { display: flex; flex-direction: column; gap: 18px; flex: 1; justify-content: center; }
+        .eac-rows { display: flex; flex-direction: column; gap: 28px; flex: 1; justify-content: center; }
         .eac-row { display: grid; grid-template-columns: 175px 1fr 90px; align-items: center; gap: 14px; }
         .eac-area { display: flex; align-items: center; gap: 12px; }
         .eac-icon-wrap {
@@ -145,21 +145,20 @@
         .eac-seg-lbl { font-size: 0.7rem; font-weight: 700; padding: 0 8px; }
         .eac-seg-ej .eac-seg-lbl, .eac-seg-comp .eac-seg-lbl { color: #fff; }
         .eac-seg-disp .eac-seg-lbl { color: var(--gray); }
-        /* Badge comprometido cuando el segmento es muy pequeño */
-        .eac-comp-badge {
-            position: absolute; bottom: calc(100% + 5px);
+        /* Badge flotante por segmento cuando es demasiado pequeño */
+        .eac-seg-badge {
+            position: absolute; bottom: calc(100% + 6px);
             transform: translateX(-50%);
-            background: var(--c-comprometido); color: #fff;
-            font-size: 0.62rem; font-weight: 700;
+            font-size: 0.62rem; font-weight: 700; color: #fff;
             padding: 3px 7px; border-radius: 6px;
             white-space: nowrap; pointer-events: none; z-index: 5;
             animation: slideUp .35s ease both;
         }
-        .eac-comp-badge::after {
+        .eac-seg-badge::after {
             content: ''; position: absolute;
             top: 100%; left: 50%; transform: translateX(-50%);
             border: 4px solid transparent;
-            border-top-color: var(--c-comprometido);
+            border-top-color: var(--arrow-color, #94a3b8);
         }
         .eac-pct-col { text-align: right; }
         .eac-pct-val { font-size: 1.15rem; font-weight: 800; color: var(--c-asignado); display: block; line-height: 1.1; }
@@ -1103,7 +1102,10 @@
             container.innerHTML = '<div style="color:var(--gray2);font-size:0.8rem;text-align:center;padding:20px">Sin datos</div>';
             return;
         }
+        const THRESH = 9;
         const fmt = v => (v / 1e6).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'M';
+        const badge = (left, bg, val) =>
+            `<div class="eac-seg-badge" style="left:${left.toFixed(2)}%;background:${bg};--arrow-color:${bg}">${fmt(val)}</div>`;
         container.innerHTML = areaRows.map(row => {
             const rawName = String(row.label || dimension(row, 'Rubros[Area]') || '').toUpperCase().trim();
             const label = displayName(rawName) || rawName;
@@ -1111,20 +1113,24 @@
             const rdi        = asNumber(rowMetric(row, 'RdiTotal'));
             const ejecutado  = asNumber(rowMetric(row, 'EjecutadoErequester'));
             const comprom    = asNumber(rowMetric(row, 'ComprometidoErequester'));
-            const asignado   = asNumber(rowMetric(row, 'AsignadoErequester'));
             const disponible = asNumber(rowMetric(row, 'DisponibleErequester'));
             const pctAsig   = asNumber(rowMetric(row, 'PorcentajeAsignado'));
             const pctText   = (pctAsig * 100).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             const ejPct     = rdi > 0 ? Math.min(100, (ejecutado / rdi) * 100) : 0;
             const compPct   = rdi > 0 ? Math.min(100 - ejPct, (comprom  / rdi) * 100) : 0;
-            const asigPct   = rdi > 0 ? Math.min(100, (asignado / rdi) * 100) : 0;
+            const ejCompPct = ejPct + compPct;
+            const dispPct   = Math.max(0, 100 - ejCompPct);
+            const ejCompVal = ejecutado + comprom;
+            const bracketLeft = Math.max(6, Math.min(94, ejCompPct / 2)).toFixed(2);
+            const ejBadge   = ejPct > 0 && ejPct < THRESH
+                ? badge(ejPct / 2, '#3b82f6', ejecutado) : '';
+            const compBadge = compPct > 0 && compPct < THRESH
+                ? badge(ejPct + compPct / 2, '#f59e0b', comprom) : '';
+            const dispBadge = dispPct > 0 && dispPct < THRESH
+                ? badge(ejCompPct + dispPct / 2, '#94a3b8', disponible) : '';
             const seg = (pct, cls, val) => pct > 0
-                ? `<div class="eac-seg ${cls}" style="width:${pct.toFixed(2)}%"><span class="eac-seg-lbl">${pct >= 9 ? fmt(val) : ''}</span></div>`
+                ? `<div class="eac-seg ${cls}" style="width:${pct.toFixed(2)}%"><span class="eac-seg-lbl">${pct >= THRESH ? fmt(val) : ''}</span></div>`
                 : '';
-            const badgeLeft = (ejPct + compPct / 2).toFixed(2);
-            const showBadge = compPct > 0 && compPct < 9;
-            // Clamp label center so it never overflows the bar area
-            const asigLabelLeft = Math.max(6, Math.min(94, asigPct / 2)).toFixed(2);
             return `
             <div class="eac-row">
                 <div class="eac-area">
@@ -1132,15 +1138,15 @@
                     <span class="eac-name">${escapeHtml(label)}</span>
                 </div>
                 <div class="eac-bar-outer">
-                    ${showBadge ? `<div class="eac-comp-badge" style="left:${badgeLeft}%">${fmt(comprom)}</div>` : ''}
+                    ${ejBadge}${compBadge}${dispBadge}
                     <div class="eac-bar-track">
                         ${seg(ejPct,   'eac-seg-ej',   ejecutado)}
                         ${seg(compPct, 'eac-seg-comp', comprom)}
-                        <div class="eac-seg eac-seg-disp"><span class="eac-seg-lbl">${fmt(disponible)}</span></div>
+                        <div class="eac-seg eac-seg-disp" style="flex:1"><span class="eac-seg-lbl">${dispPct >= THRESH ? fmt(disponible) : ''}</span></div>
                     </div>
                     <div class="eac-asig-wrap">
-                        <div class="eac-asig-bracket" style="width:${asigPct.toFixed(2)}%"></div>
-                        <div class="eac-asig-val" style="left:${asigLabelLeft}%">${fmt(asignado)}</div>
+                        <div class="eac-asig-bracket" style="width:${ejCompPct.toFixed(2)}%"></div>
+                        <div class="eac-asig-val" style="left:${bracketLeft}%">${fmt(ejCompVal)}</div>
                     </div>
                 </div>
                 <div class="eac-pct-col">
