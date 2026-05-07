@@ -93,26 +93,28 @@
 
         /* ── CONTROL EJECUCIÓN POR ÁREA ── */
         .eac-card { display: flex; flex-direction: column; }
-        .eac-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; }
-        .eac-legend { display: flex; gap: 16px; }
+        .eac-header { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 32px; }
+        .eac-header .chart-title { margin: 0 !important; }
+        .eac-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
         .eac-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: var(--gray); font-weight: 500; }
         .eac-dot { width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; }
         .eac-dot-ej   { background: var(--c-ejecutado); }
         .eac-dot-comp { background: var(--c-comprometido); }
-        .eac-dot-asig { background: #0f172a; border-radius: 2px; }
+        .eac-dot-asig { background: #1e3a5f; border-radius: 2px; }
         .eac-dot-disp { background: #c8d0db; }
+        .eac-dot-pct  { background: #10b981; }
         /* EAC bracket invertido */
         .eac-asig-wrap { position: relative; height: 26px; margin-top: 3px; overflow: visible; }
         .eac-asig-bracket {
             position: absolute; left: 0; top: 0; height: 10px;
-            border-bottom: 2px solid #64748b;
-            border-left: 2.5px solid #64748b;
-            border-right: 2.5px solid #64748b;
+            border-bottom: 2px solid #1e3a5f;
+            border-left: 2.5px solid #1e3a5f;
+            border-right: 2.5px solid #1e3a5f;
             box-sizing: border-box; min-width: 8px;
         }
-        .eac-asig-val { position: absolute; top: 13px; transform: translateX(-50%); font-size: 0.65rem; font-weight: 700; color: #334155; white-space: nowrap; }
+        .eac-asig-val { position: absolute; top: 13px; transform: translateX(-50%); font-size: 0.65rem; font-weight: 700; color: #1e3a5f; white-space: nowrap; }
         .eac-pct-header { font-size: 0.7rem; font-weight: 700; color: var(--gray); white-space: nowrap; }
-        .eac-rows { display: flex; flex-direction: column; gap: 28px; flex: 1; justify-content: center; }
+        .eac-rows { display: flex; flex-direction: column; gap: 56px; flex: 1; justify-content: center; }
         .eac-row { display: grid; grid-template-columns: 175px 1fr 90px; align-items: center; gap: 14px; cursor: pointer; border-radius: 10px; transition: background 0.18s; }
         .eac-row:hover { background: rgba(14,165,233,0.07); }
         .eac-row.chart-selected { background: rgba(14,165,233,0.13); outline: 2px solid rgba(14,165,233,0.45); }
@@ -149,7 +151,7 @@
             font-size: 0.62rem; font-weight: 700; color: #fff;
             padding: 3px 7px; border-radius: 6px;
             white-space: nowrap; pointer-events: none; z-index: 5;
-            animation: slideUp .35s ease both;
+            visibility: hidden;
         }
         .eac-seg-badge::after {
             content: ''; position: absolute;
@@ -999,8 +1001,8 @@
                     <span class="eac-legend-item"><span class="eac-dot eac-dot-comp"></span>Comprometido</span>
                     <span class="eac-legend-item"><span class="eac-dot eac-dot-asig"></span>Asignado</span>
                     <span class="eac-legend-item"><span class="eac-dot eac-dot-disp"></span>Disponible</span>
+                    <span class="eac-legend-item"><span class="eac-dot eac-dot-pct"></span>% Asignado</span>
                 </div>
-                <span class="eac-pct-header">% Ejecución</span>
             </div>
             <div id="eac-rows" class="eac-rows"></div>
         </div>
@@ -1076,8 +1078,8 @@
         }
         const THRESH = 15;
         const fmt = v => (v / 1e6).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'M';
-        const badge = (left, bg, val) =>
-            `<div class="eac-seg-badge" style="left:${left.toFixed(2)}%;background:${bg};--arrow-color:${bg}">${fmt(val)}</div>`;
+        const badge = (segCls, bg, val) =>
+            `<div class="eac-seg-badge" data-for="${segCls}" style="background:${bg};--arrow-color:${bg}">${fmt(val)}</div>`;
         container.innerHTML = areaRows.map(row => {
             const rawName = String(row.label || dimension(row, 'Rubros[Area]') || '').toUpperCase().trim();
             const label = displayName(rawName) || rawName;
@@ -1094,12 +1096,9 @@
             const dispPct   = Math.max(0, 100 - ejCompPct);
             const ejCompVal = ejecutado + comprom;
             const bracketLeft = Math.max(6, Math.min(94, ejCompPct / 2)).toFixed(2);
-            const ejBadge   = ejPct > 0 && ejPct < THRESH
-                ? badge(ejPct / 2, '#3b82f6', ejecutado) : '';
-            const compBadge = compPct > 0 && compPct < THRESH
-                ? badge(ejPct + compPct / 2, '#f59e0b', comprom) : '';
-            const dispBadge = dispPct > 0 && dispPct < THRESH
-                ? badge(ejCompPct + dispPct / 2, '#94a3b8', disponible) : '';
+            const ejBadge   = ejPct > 0 && ejPct < THRESH   ? badge('eac-seg-ej',   '#3b82f6', ejecutado)  : '';
+            const compBadge = compPct > 0 && compPct < THRESH ? badge('eac-seg-comp', '#f59e0b', comprom)  : '';
+            const dispBadge = dispPct > 0 && dispPct < THRESH ? badge('eac-seg-disp', '#94a3b8', disponible) : '';
             const seg = (pct, cls, val) => pct > 0
                 ? `<div class="eac-seg ${cls}" style="width:${pct.toFixed(2)}%"><span class="eac-seg-lbl">${pct >= THRESH ? fmt(val) : ''}</span></div>`
                 : '';
@@ -1127,6 +1126,22 @@
                 </div>
             </div>`;
         }).join('');
+        // Posicionar badges leyendo la posición real del segmento en el DOM
+        setTimeout(() => {
+            container.querySelectorAll('.eac-row').forEach(eacRow => {
+                const barOuter = eacRow.querySelector('.eac-bar-outer');
+                if (!barOuter) return;
+                const bw = barOuter.offsetWidth;
+                if (!bw) return;
+                eacRow.querySelectorAll('.eac-seg-badge').forEach(bdg => {
+                    const seg = eacRow.querySelector(`.eac-bar-track .${bdg.dataset.for}`);
+                    if (!seg) return;
+                    const cx = seg.offsetLeft + seg.offsetWidth / 2;
+                    bdg.style.left = (cx / bw * 100).toFixed(2) + '%';
+                    bdg.style.visibility = 'visible';
+                });
+            });
+        }, 700);
     }
 
     const DIMENSION_ALIASES = {
@@ -2355,20 +2370,17 @@
                     });
                     if (!pts.length) return;
 
-                    // Más alto primero (menor Y en canvas)
-                    pts.sort((a, b) => a.pt.y - b.pt.y);
+                    // Mayor valor arriba (mayor val = menor Y en canvas)
+                    pts.sort((a, b) => b.val - a.val);
 
-                    // Calcular posiciones Y sin solaparse y sin salir del área
+                    // Calcular posiciones Y sin solaparse — mayor valor siempre más arriba
                     const positions = [];
                     pts.forEach((p, idx) => {
-                        const above = idx % 2 === 0;
-                        let y = p.pt.y + (above ? -(PILL_H + 5) : (PILL_H + 5));
-                        // Clamp dentro del área del chart
+                        let y = p.pt.y - PILL_H - 5;
                         y = Math.max(yTop + PILL_H / 2 + 2, Math.min(yBottom - PILL_H / 2 - 2, y));
-                        // Separar de posiciones ya asignadas
                         let tries = 0;
-                        while (tries < 8 && positions.some(py => Math.abs(py - y) < PILL_H + MIN_GAP)) {
-                            y += above ? -(PILL_H + MIN_GAP) : (PILL_H + MIN_GAP);
+                        while (tries < 12 && positions.some(py => Math.abs(py - y) < PILL_H + MIN_GAP)) {
+                            y += PILL_H + MIN_GAP;
                             y = Math.max(yTop + PILL_H / 2 + 2, Math.min(yBottom - PILL_H / 2 - 2, y));
                             tries++;
                         }
