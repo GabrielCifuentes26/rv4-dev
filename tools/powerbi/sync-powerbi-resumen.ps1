@@ -386,8 +386,8 @@ ORDER BY $monthColumnDax
 }
 
 if ($IncludeFilterDetail) {
-    # bse model: Rubros[Fase] does not exist — EXCEPT for bdp which does have it
-    $hasFaseColumn = ($ModelProfile -ne "bse") -or ($ProjectKey -eq "bdp")
+    # bse model: Rubros[Fase] does not exist — skip porFase and omit it from detalleFiltros
+    $hasFaseColumn = ($ModelProfile -ne "bse")
 
     if ($hasFaseColumn) {
         $queries.porFase = @"
