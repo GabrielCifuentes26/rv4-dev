@@ -2278,20 +2278,39 @@
             etapaName: isL3 ? tableRowMeta[key] || null : null
         };
 
-        tbody.querySelectorAll('tr').forEach(r => {
-            r.classList.remove('tr-row-selected');
-            if (!r.classList.contains('total-row')) r.classList.add('tr-dimmed');
-        });
-        tr.classList.remove('tr-dimmed');
-        tr.classList.add('tr-row-selected');
+        // Reset all visual state
+        tbody.querySelectorAll('tr').forEach(r => r.classList.remove('tr-row-selected', 'tr-dimmed', 'tr-anim'));
+        tbody.querySelectorAll('.tr-l1, .tr-l2').forEach(r => r.classList.remove('expanded'));
+        tbody.querySelectorAll('.tr-l2, .tr-l3').forEach(r => r.classList.add('tr-hidden'));
+        tbody.querySelectorAll('.tr-l1').forEach(r => r.classList.remove('tr-hidden'));
+
         if (isL1) {
-            tbody.querySelectorAll(`.tr-child[data-ai="${ai}"]`).forEach(r => r.classList.remove('tr-dimmed'));
+            tbody.querySelectorAll(`.tr-l1:not([data-ai="${ai}"])`).forEach(r => r.classList.add('tr-hidden'));
+            tr.classList.add('tr-row-selected', 'expanded');
+            tbody.querySelectorAll(`.tr-l2[data-ai="${ai}"]`).forEach(r => {
+                r.classList.remove('tr-hidden');
+                void r.offsetWidth;
+                r.classList.add('tr-anim');
+            });
         } else if (isL2) {
-            tbody.querySelectorAll(`.tr-l1[data-ai="${ai}"]`).forEach(r => r.classList.remove('tr-dimmed'));
-            tbody.querySelectorAll(`.tr-l3[data-ai="${ai}"][data-si="${si}"]`).forEach(r => r.classList.remove('tr-dimmed'));
+            tbody.querySelectorAll(`.tr-l1:not([data-ai="${ai}"])`).forEach(r => r.classList.add('tr-hidden'));
+            tbody.querySelectorAll(`.tr-l1[data-ai="${ai}"]`).forEach(r => r.classList.add('expanded'));
+            tr.classList.remove('tr-hidden');
+            tr.classList.add('tr-row-selected', 'expanded');
+            tbody.querySelectorAll(`.tr-l3[data-ai="${ai}"][data-si="${si}"]`).forEach(r => {
+                r.classList.remove('tr-hidden');
+                void r.offsetWidth;
+                r.classList.add('tr-anim');
+            });
         } else if (isL3) {
-            tbody.querySelectorAll(`.tr-l1[data-ai="${ai}"]`).forEach(r => r.classList.remove('tr-dimmed'));
-            tbody.querySelectorAll(`.tr-l2[data-ai="${ai}"][data-si="${si}"]`).forEach(r => r.classList.remove('tr-dimmed'));
+            tbody.querySelectorAll(`.tr-l1:not([data-ai="${ai}"])`).forEach(r => r.classList.add('tr-hidden'));
+            tbody.querySelectorAll(`.tr-l1[data-ai="${ai}"]`).forEach(r => r.classList.add('expanded'));
+            tbody.querySelectorAll(`.tr-l2[data-ai="${ai}"][data-si="${si}"]`).forEach(r => {
+                r.classList.remove('tr-hidden');
+                r.classList.add('expanded');
+            });
+            tr.classList.remove('tr-hidden');
+            tr.classList.add('tr-row-selected');
         }
 
         applySelectionRender();
