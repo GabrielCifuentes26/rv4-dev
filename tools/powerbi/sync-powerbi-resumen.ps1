@@ -386,8 +386,8 @@ ORDER BY $monthColumnDax
 }
 
 if ($IncludeFilterDetail) {
-    # bse model: Rubros[Fase] does not exist — skip porFase and omit it from detalleFiltros
-    $hasFaseColumn = ($ModelProfile -ne "bse")
+    # bse model: Rubros[Fase] does not exist — EXCEPT for bdp which does have it
+    $hasFaseColumn = ($ModelProfile -ne "bse") -or ($ProjectKey -eq "bdp")
 
     if ($hasFaseColumn) {
         $queries.porFase = @"
@@ -412,6 +412,9 @@ ORDER BY $faseColumnDax
     $faseDaxLine  = if ($hasFaseColumn) { "    $faseColumnDax,`n" } else { "" }
     $faseOrderDax = if ($hasFaseColumn) { ", $faseColumnDax" } else { "" }
 
+    # detalleFiltros never applies month filter — tendencia chart needs all months
+    $detailFilterDax = ""
+
     $queries.detalleFiltros = @"
 EVALUATE
 SUMMARIZECOLUMNS(
@@ -420,7 +423,7 @@ SUMMARIZECOLUMNS(
     $segmentoColumnDax,
     $etapaColumnDax,
 $($faseDaxLine)    $areaFilterDax,
-    $mainFilterDax
+    $detailFilterDax
     "RdiTotal", $rdiMeasureDax,
     "PresupuestoErequester", $pptoErMeasureDax,
     "EjecutadoErequester", $ejecutadoMeasureDax,
