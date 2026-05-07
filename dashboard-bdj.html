@@ -1029,15 +1029,23 @@
         <div class="chart-card">
             <div class="tendencia-header">
                 <div style="display:flex;flex-direction:column;gap:6px;">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <span class="chart-title" style="margin:0" id="tendencia-title">Tendencia de Ejecución por Fase</span>
-                        <span class="tendencia-metric-badge">Asignado</span>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:6px;">
-                        <span class="tendencia-toggle-label">Ver por:</span>
-                        <div class="tendencia-toggle" id="tendencia-toggle">
-                            <button class="tendencia-btn active" data-dim="Rubros[Fase]">Fase</button>
-                            <button class="tendencia-btn" data-dim="Rubros[Area]">Área</button>
+                    <span class="chart-title" style="margin:0" id="tendencia-title">Tendencia de Ejecución por Fase</span>
+                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span class="tendencia-toggle-label">Ver por:</span>
+                            <div class="tendencia-toggle" id="tendencia-toggle">
+                                <button class="tendencia-btn active" data-dim="Rubros[Fase]">Fase</button>
+                                <button class="tendencia-btn" data-dim="Rubros[Area]">Área</button>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;margin-left:16px;">
+                            <span class="tendencia-toggle-label">Métrica:</span>
+                            <div class="tendencia-toggle" id="tendencia-metric-toggle">
+                                <button class="tendencia-btn active" data-metric="AsignadoErequester">Asignado</button>
+                                <button class="tendencia-btn" data-metric="EjecutadoErequester">Ejecutado</button>
+                                <button class="tendencia-btn" data-metric="ComprometidoErequester">Comprometido</button>
+                                <button class="tendencia-btn" data-metric="DisponibleErequester">Disponible</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2278,6 +2286,7 @@
     const FASE_PALETTE = ['#3b5bdb','#10b981','#f59e0b','#8b5cf6','#ef4444','#0ea5e9','#f97316'];
     let tendenciaChart = null;
     let tendenciaDimension = 'Rubros[Fase]';
+    let tendenciaMetric    = 'AsignadoErequester';
     let tendenciaLastRows  = [];
 
     const TENDENCIA_DIM_LABELS = {
@@ -2307,18 +2316,37 @@
         const dims = [...dimSet].sort();
         const meses = sortMonths([...mesSet]);
 
-        // Build dim × mes matrix (Asignado)
+        // Build dim × mes matrix
         const matrix = {};
-        dims.forEach(d => {
-            matrix[d] = {};
-            meses.forEach(m => { matrix[d][m] = 0; });
-        });
-        rows.forEach(r => {
-            const d = String(dimension(r, dimKey) || '').trim();
-            const m = String(dimension(r, 'Calendario[MesA]') || '').trim();
-            if (!d || !m || !matrix[d]) return;
-            matrix[d][m] += asNumber(rowMetric(r, 'AsignadoErequester'));
-        });
+        dims.forEach(d => { matrix[d] = {}; meses.forEach(m => { matrix[d][m] = 0; }); });
+
+        if (tendenciaMetric === 'DisponibleErequester' || tendenciaMetric === 'PresupuestoErequester') {
+            const dimGroups = groupRowsBy(rows, dimKey);
+            const budgetByDim = Object.fromEntries(dimGroups.map(g => [g.label, asNumber(g.PresupuestoErequester)]));
+            const asigByDim = {};
+            dims.forEach(d => { asigByDim[d] = {}; meses.forEach(m => { asigByDim[d][m] = 0; }); });
+            rows.forEach(r => {
+                const d = String(dimension(r, dimKey) || '').trim();
+                const m = String(dimension(r, 'Calendario[MesA]') || '').trim();
+                if (!d || !m || !asigByDim[d]) return;
+                asigByDim[d][m] += asNumber(field(r, 'AsignadoErequester'));
+            });
+            dims.forEach(d => {
+                const budget = budgetByDim[d] || 0;
+                meses.forEach(m => {
+                    matrix[d][m] = tendenciaMetric === 'PresupuestoErequester'
+                        ? budget
+                        : Math.max(0, budget - asigByDim[d][m]);
+                });
+            });
+        } else {
+            rows.forEach(r => {
+                const d = String(dimension(r, dimKey) || '').trim();
+                const m = String(dimension(r, 'Calendario[MesA]') || '').trim();
+                if (!d || !m || !matrix[d]) return;
+                matrix[d][m] += asNumber(rowMetric(r, tendenciaMetric));
+            });
+        }
 
         // Display label: "01" → "Fase 1" only for Fase dimension
         const dimLabel = dimKey === 'Rubros[Fase]'
@@ -2483,7 +2511,7 @@
             }).join('');
         }
 
-        // Toggle buttons (bind once)
+        // Toggle dimensión (bind once)
         const toggle = document.getElementById('tendencia-toggle');
         if (toggle && !toggle._bound) {
             toggle._bound = true;
@@ -2493,6 +2521,19 @@
                 toggle.querySelectorAll('.tendencia-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 tendenciaDimension = btn.dataset.dim;
+                renderTendenciaFase();
+            });
+        }
+        // Toggle métrica (bind once)
+        const metricToggle = document.getElementById('tendencia-metric-toggle');
+        if (metricToggle && !metricToggle._bound) {
+            metricToggle._bound = true;
+            metricToggle.addEventListener('click', e => {
+                const btn = e.target.closest('.tendencia-btn');
+                if (!btn) return;
+                metricToggle.querySelectorAll('.tendencia-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                tendenciaMetric = btn.dataset.metric;
                 renderTendenciaFase();
             });
         }
