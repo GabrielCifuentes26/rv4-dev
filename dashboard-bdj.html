@@ -121,7 +121,7 @@
             font-size: 0.62rem; font-weight: 700; color: #fff;
             padding: 3px 7px; border-radius: 6px;
             white-space: nowrap; pointer-events: none; z-index: 5;
-            animation: slideUp .35s ease both;
+            animation: slideUp .35s ease 0.7s both;
         }
         .eac-seg-badge::after {
             content: ''; position: absolute;
@@ -1099,9 +1099,8 @@
         }
         const THRESH = 15;
         const fmt = v => (v / 1e6).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'M';
-        const badgeWrap = (leftPct, widthPct, bg, val) =>
-            `<div style="position:absolute;left:${leftPct.toFixed(2)}%;width:${widthPct.toFixed(2)}%;top:0;bottom:0;pointer-events:none;overflow:visible;z-index:5">` +
-            `<div class="eac-seg-badge" style="left:50%;background:${bg};--arrow-color:${bg}">${fmt(val)}</div></div>`;
+        const badge = (left, bg, val) =>
+            `<div class="eac-seg-badge" style="left:${left.toFixed(2)}%;background:${bg};--arrow-color:${bg}">${fmt(val)}</div>`;
         container.innerHTML = areaRows.map(row => {
             const rawName = String(row.label || dimension(row, 'Rubros[Area]') || '').toUpperCase().trim();
             const label = displayName(rawName) || rawName;
@@ -1119,11 +1118,11 @@
             const ejCompVal = ejecutado + comprom;
             const bracketLeft = Math.max(6, Math.min(94, ejCompPct / 2)).toFixed(2);
             const ejBadge   = ejPct > 0 && ejPct < THRESH
-                ? badgeWrap(0, ejPct, '#3b82f6', ejecutado) : '';
+                ? badge(ejPct / 2, '#3b82f6', ejecutado) : '';
             const compBadge = compPct > 0 && compPct < THRESH
-                ? badgeWrap(ejPct, compPct, '#f59e0b', comprom) : '';
+                ? badge(ejPct + compPct / 2, '#f59e0b', comprom) : '';
             const dispBadge = dispPct > 0 && dispPct < THRESH
-                ? badgeWrap(ejCompPct, dispPct, '#94a3b8', disponible) : '';
+                ? badge(ejCompPct + dispPct / 2, '#94a3b8', disponible) : '';
             const seg = (pct, cls, val) => pct > 0
                 ? `<div class="eac-seg ${cls}" style="width:${pct.toFixed(2)}%"><span class="eac-seg-lbl">${pct >= THRESH ? fmt(val) : ''}</span></div>`
                 : '';
