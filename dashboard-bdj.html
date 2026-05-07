@@ -121,7 +121,7 @@
             font-size: 0.62rem; font-weight: 700; color: #fff;
             padding: 3px 7px; border-radius: 6px;
             white-space: nowrap; pointer-events: none; z-index: 5;
-            animation: slideUp .35s ease 0.7s both;
+            visibility: hidden;
         }
         .eac-seg-badge::after {
             content: ''; position: absolute;
@@ -1099,8 +1099,8 @@
         }
         const THRESH = 15;
         const fmt = v => (v / 1e6).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'M';
-        const badge = (left, bg, val) =>
-            `<div class="eac-seg-badge" style="left:${left.toFixed(2)}%;background:${bg};--arrow-color:${bg}">${fmt(val)}</div>`;
+        const badge = (segCls, bg, val) =>
+            `<div class="eac-seg-badge" data-for="${segCls}" style="background:${bg};--arrow-color:${bg}">${fmt(val)}</div>`;
         container.innerHTML = areaRows.map(row => {
             const rawName = String(row.label || dimension(row, 'Rubros[Area]') || '').toUpperCase().trim();
             const label = displayName(rawName) || rawName;
@@ -1117,12 +1117,9 @@
             const dispPct   = Math.max(0, 100 - ejCompPct);
             const ejCompVal = ejecutado + comprom;
             const bracketLeft = Math.max(6, Math.min(94, ejCompPct / 2)).toFixed(2);
-            const ejBadge   = ejPct > 0 && ejPct < THRESH
-                ? badge(ejPct / 2, '#3b82f6', ejecutado) : '';
-            const compBadge = compPct > 0 && compPct < THRESH
-                ? badge(ejPct + compPct / 2, '#f59e0b', comprom) : '';
-            const dispBadge = dispPct > 0 && dispPct < THRESH
-                ? badge(ejCompPct + dispPct / 2, '#94a3b8', disponible) : '';
+            const ejBadge   = ejPct > 0 && ejPct < THRESH   ? badge('eac-seg-ej',   '#3b82f6', ejecutado)  : '';
+            const compBadge = compPct > 0 && compPct < THRESH ? badge('eac-seg-comp', '#f59e0b', comprom)  : '';
+            const dispBadge = dispPct > 0 && dispPct < THRESH ? badge('eac-seg-disp', '#94a3b8', disponible) : '';
             const seg = (pct, cls, val) => pct > 0
                 ? `<div class="eac-seg ${cls}" style="width:${pct.toFixed(2)}%"><span class="eac-seg-lbl">${pct >= THRESH ? fmt(val) : ''}</span></div>`
                 : '';
@@ -1150,6 +1147,22 @@
                 </div>
             </div>`;
         }).join('');
+        // Posicionar badges leyendo la posición real del segmento en el DOM
+        setTimeout(() => {
+            container.querySelectorAll('.eac-row').forEach(eacRow => {
+                const barOuter = eacRow.querySelector('.eac-bar-outer');
+                if (!barOuter) return;
+                const bw = barOuter.offsetWidth;
+                if (!bw) return;
+                eacRow.querySelectorAll('.eac-seg-badge').forEach(bdg => {
+                    const seg = eacRow.querySelector(`.eac-bar-track .${bdg.dataset.for}`);
+                    if (!seg) return;
+                    const cx = seg.offsetLeft + seg.offsetWidth / 2;
+                    bdg.style.left = (cx / bw * 100).toFixed(2) + '%';
+                    bdg.style.visibility = 'visible';
+                });
+            });
+        }, 700);
     }
 
     const DIMENSION_ALIASES = {
