@@ -1046,6 +1046,7 @@
                                 <button class="tendencia-btn" data-metric="EjecutadoErequester">Ejecutado</button>
                                 <button class="tendencia-btn" data-metric="ComprometidoErequester">Comprometido</button>
                                 <button class="tendencia-btn" data-metric="DisponibleErequester">Disponible</button>
+                                <button class="tendencia-btn" data-metric="PresupuestoErequester">PPTO SAP</button>
                             </div>
                         </div>
                     </div>
@@ -2321,18 +2322,43 @@
         const dims = [...dimSet].sort();
         const meses = sortMonths([...mesSet]);
 
-        // Build dim × mes matrix (Asignado)
+        // Build dim × mes matrix
         const matrix = {};
-        dims.forEach(d => {
-            matrix[d] = {};
-            meses.forEach(m => { matrix[d][m] = 0; });
-        });
-        rows.forEach(r => {
-            const d = String(dimension(r, dimKey) || '').trim();
-            const m = String(dimension(r, 'Calendario[MesA]') || '').trim();
-            if (!d || !m || !matrix[d]) return;
-            matrix[d][m] += asNumber(rowMetric(r, tendenciaMetric));
-        });
+        dims.forEach(d => { matrix[d] = {}; meses.forEach(m => { matrix[d][m] = 0; }); });
+
+        if (tendenciaMetric === 'DisponibleErequester' || tendenciaMetric === 'PresupuestoErequester') {
+            // Budget metrics: deduplicar PresupuestoErequester por budget key
+            const budgetByDim = {};
+            const seenByDim  = {};
+            const asigByDim  = {};
+            dims.forEach(d => { budgetByDim[d] = 0; seenByDim[d] = new Set(); asigByDim[d] = {}; meses.forEach(m => { asigByDim[d][m] = 0; }); });
+            rows.forEach(r => {
+                const d = String(dimension(r, dimKey) || '').trim();
+                const m = String(dimension(r, 'Calendario[MesA]') || '').trim();
+                if (!d || !m) return;
+                const bk = budgetKey(r);
+                if (!seenByDim[d].has(bk)) {
+                    budgetByDim[d] += asNumber(field(r, 'PresupuestoErequester'));
+                    seenByDim[d].add(bk);
+                }
+                if (asigByDim[d]?.[m] !== undefined)
+                    asigByDim[d][m] += asNumber(field(r, 'AsignadoErequester'));
+            });
+            dims.forEach(d => {
+                meses.forEach(m => {
+                    matrix[d][m] = tendenciaMetric === 'PresupuestoErequester'
+                        ? budgetByDim[d]
+                        : Math.max(0, budgetByDim[d] - asigByDim[d][m]);
+                });
+            });
+        } else {
+            rows.forEach(r => {
+                const d = String(dimension(r, dimKey) || '').trim();
+                const m = String(dimension(r, 'Calendario[MesA]') || '').trim();
+                if (!d || !m || !matrix[d]) return;
+                matrix[d][m] += asNumber(rowMetric(r, tendenciaMetric));
+            });
+        }
 
         // Display label: "01" → "Fase 1" only for Fase dimension
         const dimLabel = dimKey === 'Rubros[Fase]'
