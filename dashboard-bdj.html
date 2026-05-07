@@ -2357,20 +2357,19 @@
                     });
                     if (!pts.length) return;
 
-                    // Más alto primero (menor Y en canvas)
-                    pts.sort((a, b) => a.pt.y - b.pt.y);
+                    // Mayor valor arriba (mayor val = menor Y en canvas)
+                    pts.sort((a, b) => b.val - a.val);
 
-                    // Calcular posiciones Y sin solaparse y sin salir del área
+                    // Calcular posiciones Y sin solaparse — mayor valor siempre más arriba
                     const positions = [];
                     pts.forEach((p, idx) => {
-                        const above = idx % 2 === 0;
-                        let y = p.pt.y + (above ? -(PILL_H + 5) : (PILL_H + 5));
+                        let y = p.pt.y - PILL_H - 5;
                         // Clamp dentro del área del chart
                         y = Math.max(yTop + PILL_H / 2 + 2, Math.min(yBottom - PILL_H / 2 - 2, y));
-                        // Separar de posiciones ya asignadas
+                        // Separar hacia abajo si se solapa con píldoras ya colocadas
                         let tries = 0;
-                        while (tries < 8 && positions.some(py => Math.abs(py - y) < PILL_H + MIN_GAP)) {
-                            y += above ? -(PILL_H + MIN_GAP) : (PILL_H + MIN_GAP);
+                        while (tries < 12 && positions.some(py => Math.abs(py - y) < PILL_H + MIN_GAP)) {
+                            y += PILL_H + MIN_GAP;
                             y = Math.max(yTop + PILL_H / 2 + 2, Math.min(yBottom - PILL_H / 2 - 2, y));
                             tries++;
                         }
