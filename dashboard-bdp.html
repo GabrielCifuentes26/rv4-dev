@@ -2404,7 +2404,7 @@
         const mesConActividad = new Set();
         rows.forEach(r => {
             const m = String(dimension(r, 'Calendario[MesA]') || '').trim();
-            if (m && (asNumber(field(r, 'AsignadoErequester')) > 0 || asNumber(field(r, 'EjecutadoErequester')) > 0))
+            if (m && asNumber(field(r, 'AsignadoErequester')) > 0)
                 mesConActividad.add(m);
         });
         const mesesVisible = meses.filter(m => mesConActividad.has(m));
