@@ -2291,11 +2291,23 @@
 
     function renderTendenciaFase(detailRows) {
         if (detailRows && detailRows.length) tendenciaLastRows = detailRows;
-        const rows   = tendenciaLastRows;
         const canvas = document.getElementById('tendenciaChart');
         if (!canvas) return;
 
         const dimKey = tendenciaDimension;
+
+        // porMesFiltros: all months × area, independent of month filter
+        const mfData = powerBIState.data?.datasets?.porMesFiltros || [];
+        let rows;
+        if (mfData.length && dimKey === 'Rubros[Area]') {
+            const selAreas = (powerBIState.filters.areas || []).map(a => a.toUpperCase().trim());
+            rows = mfData.filter(r => {
+                if (!selAreas.length) return true;
+                return selAreas.includes(String(dimension(r, 'Rubros[Area]') || '').toUpperCase().trim());
+            });
+        } else {
+            rows = tendenciaLastRows;
+        }
 
         // Collect unique dim values and months
         const dimSet = new Set();
@@ -2314,7 +2326,8 @@
         const matrix = {};
         dims.forEach(d => { matrix[d] = {}; meses.forEach(m => { matrix[d][m] = 0; }); });
 
-        if (tendenciaMetric === 'DisponibleErequester' || tendenciaMetric === 'PresupuestoErequester') {
+        const usingMfData = mfData.length > 0 && dimKey === 'Rubros[Area]';
+        if (!usingMfData && (tendenciaMetric === 'DisponibleErequester' || tendenciaMetric === 'PresupuestoErequester')) {
             const dimGroups = groupRowsBy(rows, dimKey);
             const budgetByDim = Object.fromEntries(dimGroups.map(g => [g.label, asNumber(g.PresupuestoErequester)]));
             const asigByDim = {};

@@ -412,8 +412,21 @@ ORDER BY $faseColumnDax
     $faseDaxLine  = if ($hasFaseColumn) { "    $faseColumnDax,`n" } else { "" }
     $faseOrderDax = if ($hasFaseColumn) { ", $faseColumnDax" } else { "" }
 
-    # detalleFiltros never applies month filter — tendencia chart needs all months
-    $detailFilterDax = ""
+    # porMesFiltros: all months x area (no month filter) — for tendencia chart
+    $queries.porMesFiltros = @"
+EVALUATE
+SUMMARIZECOLUMNS(
+    $monthColumnDax,
+    $areaColumnDax,
+    $areaFilterDax,
+    "PresupuestoErequester", $pptoErMeasureDax,
+    "EjecutadoErequester", $ejecutadoMeasureDax,
+    "ComprometidoErequester", $comprometidoMeasureDax,
+    "AsignadoErequester", $asignadoMeasureDax,
+    "DisponibleErequester", $disponibleMeasureDax
+)
+ORDER BY $monthColumnDax, $areaColumnDax
+"@
 
     $queries.detalleFiltros = @"
 EVALUATE
@@ -423,7 +436,7 @@ SUMMARIZECOLUMNS(
     $segmentoColumnDax,
     $etapaColumnDax,
 $($faseDaxLine)    $areaFilterDax,
-    $detailFilterDax
+    $mainFilterDax
     "RdiTotal", $rdiMeasureDax,
     "PresupuestoErequester", $pptoErMeasureDax,
     "EjecutadoErequester", $ejecutadoMeasureDax,
