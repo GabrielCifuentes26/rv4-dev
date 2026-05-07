@@ -2400,6 +2400,9 @@
             });
         }
 
+        // Ocultar meses sin datos en ninguna dimensión
+        const mesesVisible = meses.filter(m => dims.some(d => (matrix[d][m] || 0) > 0));
+
         // Display label: "01" → "Fase 1" only for Fase dimension
         const dimLabel = dimKey === 'Rubros[Fase]'
             ? (f => /^\d+$/.test(f.trim()) ? `Fase ${parseInt(f, 10)}` : f)
@@ -2412,7 +2415,7 @@
             const color = areaColor ? areaColor.color : FASE_PALETTE[i % FASE_PALETTE.length];
             return {
                 label: faseName(fase),
-                data: meses.map(m => toMillions(matrix[fase][m])),
+                data: mesesVisible.map(m => toMillions(matrix[fase][m])),
                 borderColor: color, backgroundColor: color + '15',
                 fill: true, tension: 0.4, borderWidth: 2.5,
                 pointRadius: 4, pointHoverRadius: 7, pointBackgroundColor: color,
@@ -2510,7 +2513,7 @@
         if (!tendenciaChart) {
             tendenciaChart = new Chart(canvas, {
                 type: 'line',
-                data: { labels: meses, datasets },
+                data: { labels: mesesVisible, datasets },
                 plugins: [labelPlugin],
                 options: {
                     responsive: true, maintainAspectRatio: false,
@@ -2538,7 +2541,7 @@
                 }
             });
         } else {
-            tendenciaChart.data.labels   = meses;
+            tendenciaChart.data.labels   = mesesVisible;
             tendenciaChart.data.datasets = datasets;
             tendenciaChart.update();
         }
@@ -2555,7 +2558,7 @@
                 const rawF = f.toUpperCase().trim();
                 const areaColorL = dimKey === 'Rubros[Area]' ? (AREA_CONFIG[rawF] || null) : null;
                 const color = areaColorL ? areaColorL.color : FASE_PALETTE[i % FASE_PALETTE.length];
-                const total  = meses.reduce((s, m) => s + toMillions(matrix[f][m]), 0);
+                const total  = mesesVisible.reduce((s, m) => s + toMillions(matrix[f][m]), 0);
                 return `<div class="tendencia-leyenda-item">
                     <div class="tendencia-dot" style="background:${color}"></div>
                     <span>${faseName(f)}</span>
