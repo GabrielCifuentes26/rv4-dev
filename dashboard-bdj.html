@@ -94,25 +94,27 @@
 
         /* ── CONTROL EJECUCIÓN POR ÁREA ── */
         .eac-card { display: flex; flex-direction: column; }
-        .eac-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; }
-        .eac-legend { display: flex; gap: 16px; }
+        .eac-header { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 28px; }
+        .eac-header .chart-title { margin: 0 !important; }
+        .eac-legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
         .eac-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: var(--gray); font-weight: 500; }
         .eac-dot { width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; }
         .eac-dot-ej   { background: var(--c-ejecutado); }
         .eac-dot-comp { background: var(--c-comprometido); }
-        .eac-dot-asig { background: #0f172a; border-radius: 2px; }
+        .eac-dot-asig { background: #1e3a5f; border-radius: 2px; }
         .eac-dot-disp { background: #c8d0db; }
+        .eac-dot-pct  { background: #10b981; }
         /* EAC bracket invertido */
         .eac-asig-wrap { position: relative; height: 26px; margin-top: 3px; overflow: visible; }
         .eac-asig-bracket {
             position: absolute; left: 0; top: 0; height: 10px;
-            border-bottom: 2px solid #64748b;
-            border-left: 2.5px solid #64748b;
-            border-right: 2.5px solid #64748b;
+            border-bottom: 2px solid #1e3a5f;
+            border-left: 2.5px solid #1e3a5f;
+            border-right: 2.5px solid #1e3a5f;
             box-sizing: border-box; min-width: 8px;
         }
-        .eac-asig-val { position: absolute; top: 13px; transform: translateX(-50%); font-size: 0.65rem; font-weight: 700; color: #334155; white-space: nowrap; }
-        .eac-rows { display: flex; flex-direction: column; gap: 28px; flex: 1; justify-content: center; }
+        .eac-asig-val { position: absolute; top: 13px; transform: translateX(-50%); font-size: 0.65rem; font-weight: 700; color: #1e3a5f; white-space: nowrap; }
+        .eac-rows { display: flex; flex-direction: column; gap: 44px; flex: 1; justify-content: center; }
         /* Badge flotante por segmento */
         .eac-seg-badge {
             position: absolute; bottom: calc(100% + 6px); transform: translateX(-50%);
@@ -998,10 +1000,10 @@
                 <div class="eac-legend">
                     <span class="eac-legend-item"><span class="eac-dot eac-dot-ej"></span>Ejecutado</span>
                     <span class="eac-legend-item"><span class="eac-dot eac-dot-comp"></span>Comprometido</span>
-                    <span class="eac-legend-item"><span class="eac-dot eac-dot-asig"></span>Asignado</span>
+                    <span class="eac-legend-item"><span class="eac-dot eac-dot-asig"></span>Ej. + Comp.</span>
                     <span class="eac-legend-item"><span class="eac-dot eac-dot-disp"></span>Disponible</span>
+                    <span class="eac-legend-item"><span class="eac-dot eac-dot-pct"></span>% Ejecución</span>
                 </div>
-                <span class="eac-pct-header">% Ejecución</span>
             </div>
             <div id="eac-rows" class="eac-rows"></div>
         </div>
