@@ -1095,7 +1095,7 @@
             container.innerHTML = '<div style="color:var(--gray2);font-size:0.8rem;text-align:center;padding:20px">Sin datos</div>';
             return;
         }
-        const THRESH = 9;
+        const THRESH = 15;
         const fmt = v => (v / 1e6).toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + 'M';
         const badge = (left, bg, val) =>
             `<div class="eac-seg-badge" style="left:${left.toFixed(2)}%;background:${bg};--arrow-color:${bg}">${fmt(val)}</div>`;
