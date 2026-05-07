@@ -1501,7 +1501,27 @@
         if (!menu) return;
         const selected = powerBIState.filters[config.key] || [];
         const options = powerBIState.options[config.optionKey] || [];
-        // all checked only when ALL options are explicitly selected (not when empty/cleared)
+
+        // Meses: radio button (single-select), sin "Seleccionar todo"
+        if (config.key === 'meses') {
+            menu.innerHTML = options.map(option => `
+                <label class="filter-option">
+                    <input type="radio" name="bdp-mes-radio" value="${escapeHtml(option)}" ${selected.includes(option) ? 'checked' : ''}>
+                    <span>${escapeHtml(displayName(option))}</span>
+                </label>
+            `).join('');
+            menu.querySelectorAll('input[type="radio"]').forEach(input => {
+                input.addEventListener('change', () => {
+                    powerBIState.filters.meses = [input.value];
+                    populateFilterControls('meses');
+                    renderPowerBIView();
+                });
+            });
+            updateFilterLabel(config);
+            return;
+        }
+
+        // Resto de filtros: checkboxes con "Seleccionar todo"
         const allChecked = options.length > 0 && selected.length === options.length;
         const allIndeterminate = selected.length > 0 && selected.length < options.length;
         menu.innerHTML = `
@@ -1520,7 +1540,6 @@
         if (selectAllInput) {
             selectAllInput.indeterminate = allIndeterminate;
             selectAllInput.addEventListener('change', () => {
-                // checked → selecciona todo; unchecked → limpia este filtro (toggle real)
                 powerBIState.filters[config.key] = selectAllInput.checked ? [...options] : [];
                 populateFilterControls(config.key);
                 renderPowerBIView();
@@ -1531,7 +1550,6 @@
             input.addEventListener('change', () => {
                 const opts = powerBIState.options[config.optionKey] || [];
                 const checked = [...menu.querySelectorAll('input[data-filter-option="true"]:checked')].map(item => item.value);
-                // si queda todo marcado → guardar como "todos" explícito; si queda vacío → cleared
                 powerBIState.filters[config.key] = checked.length === opts.length ? [...opts] : checked;
                 populateFilterControls(config.key);
                 renderPowerBIView();
@@ -1660,8 +1678,10 @@
             if (changedKey && config.key === changedKey) {
                 powerBIState.filters[config.key] = selected;
             } else if (!changedKey && !prior.hadOptions && prior.wasEmpty) {
-                // Carga inicial — MESES selecciona todo; el resto arranca vacío (= Todas, Power BI style)
-                powerBIState.filters[config.key] = config.key === 'meses' ? [...options] : [];
+                // Carga inicial — MESES selecciona último mes; el resto arranca vacío (= Todas, Power BI style)
+                powerBIState.filters[config.key] = config.key === 'meses'
+                    ? (options.length ? [options[options.length - 1]] : [])
+                    : [];
             } else if (prior.wasAll) {
                 // Estaba en "Todas" → mantener "Todas" con el nuevo set de opciones
                 powerBIState.filters[config.key] = [...options];
@@ -1681,6 +1701,14 @@
                 powerBIState.options[config.optionKey] = buildFilterOptions(config);
             });
             syncFilterSelections(previous, changedKey);
+        }
+        // Meses: single-select — siempre forzar exactamente 1 mes seleccionado (el último si vacío)
+        const mesesOpts = powerBIState.options.meses || [];
+        if (mesesOpts.length) {
+            const selMeses = powerBIState.filters.meses || [];
+            if (!selMeses.length || selMeses.length > 1) {
+                powerBIState.filters.meses = [mesesOpts[mesesOpts.length - 1]];
+            }
         }
 
         FILTER_CONFIG.forEach(populateFilterMenu);
@@ -1704,6 +1732,18 @@
         asignado:     { label: 'Asignado',     color: '#10b981' },
         disponible:   { label: 'Disponible',   color: '#64748b' },
     };
+
+    function filteredDetailRowsNoMonth() {
+        return getDetailRows(powerBIState.data).filter(row => {
+            if (!rowHasFilterValues(row)) return false;
+            return FILTER_CONFIG.every(config => {
+                if (config.key === 'meses') return true;
+                const selected = powerBIState.filters[config.key] || [];
+                if (!selected.length) return true;
+                return selected.includes(filterDimension(row, config));
+            });
+        });
+    }
 
     function filteredDetailRows() {
         let rows = getDetailRows(powerBIState.data).filter(row => rowPassesSelectedFilters(row));
@@ -2296,7 +2336,7 @@
 
         const dimKey = tendenciaDimension;
 
-        // porMesFiltros: all months × area, independent of month filter
+        // Tendencia: independiente del filtro de mes — usa porMesFiltros si existe, si no todo detalleFiltros
         const mfData = powerBIState.data?.datasets?.porMesFiltros || [];
         let rows;
         if (mfData.length && dimKey === 'Rubros[Area]') {
@@ -2306,7 +2346,8 @@
                 return selAreas.includes(String(dimension(r, 'Rubros[Area]') || '').toUpperCase().trim());
             });
         } else {
-            rows = tendenciaLastRows;
+            rows = filteredDetailRowsNoMonth();
+            if (!rows.length) rows = tendenciaLastRows;
         }
 
         // Collect unique dim values and months
