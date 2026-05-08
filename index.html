@@ -759,14 +759,14 @@
                 <div class="cat-name">Casas</div>
                 <div class="cat-count">6 proyectos</div>
             </div>
-        </div>
-        <div class="cat-wip-divider"><span>🔭 Próximos desarrollos</span></div>
-        <div class="cat-row-wip">
             <div class="cat-card" data-cat="lotes" style="--cat-c:#10b981" onclick="selectCategory(this, 'lotes')">
                 <div class="cat-icon">🌿</div>
                 <div class="cat-name">Lotes</div>
-                <div class="wip-badge">⏳ En desarrollo</div>
+                <div class="cat-count">1 proyecto</div>
             </div>
+        </div>
+        <div class="cat-wip-divider"><span>🔭 Próximos desarrollos</span></div>
+        <div class="cat-row-wip">
             <div class="cat-card cat-card--wip" data-cat="edificios" style="--cat-c:#f97316">
                 <div class="cat-icon">🏢</div>
                 <div class="cat-name">Edificios</div>
@@ -796,15 +796,14 @@
                     <span class="dev-dropdown-chevron">▾</span>
                 </button>
                 <div class="dev-dropdown-panel" id="devDropdownPanel">
-                    <button class="dev-option dev-option--active">
+                    <button class="dev-option dev-option--active" onclick="selectCategoryFromDropdown('casas','🏠','Casas')">
                         <span class="dev-option-icon">🏠</span>
                         Casas
                         <span class="dev-option-check">✓</span>
                     </button>
-                    <button class="dev-option dev-option--disabled" disabled>
+                    <button class="dev-option" onclick="selectCategoryFromDropdown('lotes','🌿','Lotes')">
                         <span class="dev-option-icon">🌿</span>
                         Lotes
-                        <span class="dev-option-soon">Pronto</span>
                     </button>
                     <button class="dev-option dev-option--disabled" disabled>
                         <span class="dev-option-icon">🏢</span>
@@ -1354,6 +1353,18 @@
         const isOpen  = trigger.classList.contains('open');
         trigger.classList.toggle('open', !isOpen);
         panel.classList.toggle('open', !isOpen);
+    }
+
+    function selectCategoryFromDropdown(cat, icon, label) {
+        document.getElementById('devDropdownIcon').textContent  = icon;
+        document.getElementById('devDropdownLabel').textContent = label;
+        document.querySelectorAll('.dev-option').forEach(b => {
+            b.classList.toggle('dev-option--active', b.textContent.trim().startsWith(label));
+        });
+        document.getElementById('devDropdownTrigger').classList.remove('open');
+        document.getElementById('devDropdownPanel').classList.remove('open');
+        const catCard = document.querySelector(`.cat-card[data-cat="${cat}"]`);
+        if (catCard) selectCategory(catCard, cat);
     }
     document.addEventListener('click', (e) => {
         if (!e.target.closest('#devDropdown')) {
