@@ -2298,8 +2298,9 @@
         } else if (isL2) {
             tbody.querySelectorAll(`.tr-l1:not([data-ai="${ai}"])`).forEach(r => r.classList.add('tr-hidden'));
             tbody.querySelectorAll(`.tr-l1[data-ai="${ai}"]`).forEach(r => r.classList.add('expanded'));
+            void tr.offsetWidth;
             tr.classList.remove('tr-hidden');
-            tr.classList.add('tr-row-selected', 'expanded');
+            tr.classList.add('tr-row-selected', 'expanded', 'tr-anim');
             tbody.querySelectorAll(`.tr-l3[data-ai="${ai}"][data-si="${si}"]`).forEach(r => {
                 r.classList.remove('tr-hidden');
                 void r.offsetWidth;
@@ -2310,10 +2311,12 @@
             tbody.querySelectorAll(`.tr-l1[data-ai="${ai}"]`).forEach(r => r.classList.add('expanded'));
             tbody.querySelectorAll(`.tr-l2[data-ai="${ai}"][data-si="${si}"]`).forEach(r => {
                 r.classList.remove('tr-hidden');
-                r.classList.add('expanded');
+                void r.offsetWidth;
+                r.classList.add('expanded', 'tr-anim');
             });
+            void tr.offsetWidth;
             tr.classList.remove('tr-hidden');
-            tr.classList.add('tr-row-selected');
+            tr.classList.add('tr-row-selected', 'tr-anim');
         }
 
         applySelectionRender();
