@@ -188,13 +188,19 @@ $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")
 $outputPath = Join-Path $repoRoot $OutputDir
 New-Item -ItemType Directory -Force -Path $outputPath | Out-Null
 
-if ($env:PBI_SESSION_ACTIVE -eq "1") {
+$pbiConnected = $false
+try {
+    $tok = Get-PowerBIAccessToken -ErrorAction Stop
+    if ($tok -and $tok.Authorization) { $pbiConnected = $true }
+} catch { }
+
+if ($pbiConnected) {
     Write-Info "Sesion Power BI activa, reutilizando."
 } else {
     Write-Info "Iniciando sesion. Usa tu cuenta de Microsoft con acceso al reporte."
     Connect-PowerBIServiceAccount | Out-Null
-    $env:PBI_SESSION_ACTIVE = "1"
 }
+$env:PBI_SESSION_ACTIVE = "1"
 
 if (-not [string]::IsNullOrWhiteSpace($ReportName)) {
     $resolvedReport = Resolve-PowerBIReportByName -WorkspaceId $WorkspaceId -ReportName $ReportName
