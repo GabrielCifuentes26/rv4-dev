@@ -1697,6 +1697,11 @@
         }
 
         FILTER_CONFIG.forEach(populateFilterMenu);
+
+        FILTER_CONFIG.forEach(config => {
+            const card = document.getElementById(config.cardId);
+            if (card) card.style.display = (powerBIState.options[config.optionKey] || []).length ? '' : 'none';
+        });
     }
 
     let searchQuery = '';
