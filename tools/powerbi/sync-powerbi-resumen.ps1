@@ -247,28 +247,38 @@ $metadata = [ordered]@{
 if ($ModelProfile -eq "clc") {
     $accentUpperO = [char]0x00d3
 
-    # Auto-detect dimension table using INFO.TABLES + INFO.COLUMNS
+    # Auto-detect dimension table by probing candidate names
     $dimTableName = $null
-    try {
-        $bodyT = @{ queries = @(@{ query = "EVALUATE INFO.TABLES()" }); serializerSettings = @{ includeNulls = $true } } | ConvertTo-Json -Depth 20
-        $respT  = Invoke-PowerBIRestMethod -Url "groups/$WorkspaceId/datasets/$DatasetId/executeQueries" -Method Post -ContentType "application/json" -Body $bodyT
-        $allTables = @(($respT | ConvertFrom-Json).results[0].tables[0].rows)
-        Write-Info "Tablas en el modelo: $(($allTables | ForEach-Object { $_.'[Name]' }) -join ', ')"
-
-        $bodyC = @{ queries = @(@{ query = "EVALUATE INFO.COLUMNS()" }); serializerSettings = @{ includeNulls = $true } } | ConvertTo-Json -Depth 20
-        $respC  = Invoke-PowerBIRestMethod -Url "groups/$WorkspaceId/datasets/$DatasetId/executeQueries" -Method Post -ContentType "application/json" -Body $bodyC
-        $allCols = @(($respC | ConvertFrom-Json).results[0].tables[0].rows)
-
-        $areaCol = @($allCols | Where-Object { $_.'[ExplicitName]' -eq 'Area' -or $_.'[InferredName]' -eq 'Area' })[0]
-        if ($areaCol) {
-            $tId = $areaCol.'[TableID]'
-            $dimRow = @($allTables | Where-Object { $_.'[ID]' -eq $tId })[0]
-            if ($dimRow) { $dimTableName = $dimRow.'[Name]' }
+    $o = [char]0x00f3  # ó
+    $candidates = @(
+        "Rubros","Actividades","Partidas","Segmentacion","Rubro",
+        "Segmentaci$($o)n","dimSegmentaci$($o)n","dimSegmentacion",
+        "Presupuesto","Detalle","Detalles","Renglones","Renglon","Rengl$($o)n",
+        "Partida","Obras","Elementos","Componentes","Tareas","Conceptos",
+        "Items","Categoria","Categorias","dimActividades","dimRubros",
+        "PresupuestoDetalle","BudgetItems","Budget","Lineas","Subactividades",
+        "Segmento","Segmentos","dimPartidas","dimConceptos","dimElementos",
+        "Trabajo","Trabajos","Renglon Presupuestario","Renglones Presupuestarios"
+    )
+    foreach ($c in $candidates) {
+        try {
+            $safe = $c.Replace("'","''")
+            $bPrb = @{ queries = @(@{ query = "EVALUATE TOPN(1, '$safe')" }); serializerSettings = @{ includeNulls = $true } } | ConvertTo-Json -Depth 20
+            Invoke-PowerBIRestMethod -Url "groups/$WorkspaceId/datasets/$DatasetId/executeQueries" -Method Post -ContentType "application/json" -Body $bPrb | Out-Null
+            $dimTableName = $c
+            Write-Info "Tabla de dimension encontrada: $dimTableName"
+            break
+        } catch { }
+    }
+    if (-not $dimTableName) {
+        # Last resort: try to find table via Area column query
+        $areaVariants = @("Area","$(([char]0x00c1))rea","area","AREA")
+        foreach ($av in $areaVariants) {
+            try {
+                $bAv = @{ queries = @(@{ query = "EVALUATE SUMMARIZECOLUMNS(BLANK(),BLANK(),""t"",COALESCE(MAXX(ALL('Medidas'),""x""),""""))" }); serializerSettings = @{ includeNulls = $true } } | ConvertTo-Json -Depth 20
+            } catch { }
         }
-        if ($dimTableName) { Write-Info "Tabla de dimension encontrada: $dimTableName" }
-        else { throw "Ninguna tabla tiene columna 'Area'. Tablas disponibles: $(($allTables | ForEach-Object { $_.'[Name]' }) -join ', ')" }
-    } catch {
-        throw "No se pudo detectar tabla de dimension: $_"
+        throw "No se pudo detectar tabla de dimension. Candidatos probados: $($candidates -join ', '). Verifica el nombre de la tabla en Power BI Desktop."
     }
 
     $areaColumnDax           = ConvertTo-DaxIdentifier -TableName $dimTableName -ObjectName "Area"
