@@ -1106,7 +1106,8 @@
 
         data.forEach(cacheRow => {
             const project = projectsWithSap.find(item => SAP_PROJECT_KEYS[item.id] === cacheRow.project_key);
-            const totalsRow = cacheRow.payload?.datasets?.totales?.[0] || cacheRow.payload?.rows?.[0];
+            const totalesRaw = cacheRow.payload?.datasets?.totales;
+            const totalsRow = (Array.isArray(totalesRaw) ? totalesRaw[0] : totalesRaw) || cacheRow.payload?.rows?.[0];
             setSapSummaryFromRow(project, totalsRow);
             setSapAreasFromRows(project, cacheRow.payload?.datasets?.porArea);
             if (project && cacheRow.updated_at) project.sapUpdatedAt = cacheRow.updated_at;
