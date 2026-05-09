@@ -33,8 +33,14 @@ if ($outputFolder -and -not (Test-Path -LiteralPath $outputFolder)) {
     New-Item -ItemType Directory -Force -Path $outputFolder | Out-Null
 }
 
-Write-Info "Iniciando sesion de Power BI."
-Connect-PowerBIServiceAccount | Out-Null
+$pbiConnected = $false
+try { $tok = Get-PowerBIAccessToken -ErrorAction Stop; if ($tok -and $tok.Authorization) { $pbiConnected = $true } } catch { }
+if ($pbiConnected) {
+    Write-Info "Sesion Power BI activa, reutilizando."
+} else {
+    Write-Info "Iniciando sesion de Power BI."
+    Connect-PowerBIServiceAccount | Out-Null
+}
 
 # Buscar reporte que usa este dataset
 Write-Info "Buscando reporte asociado al dataset $DatasetId..."

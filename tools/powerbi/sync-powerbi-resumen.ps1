@@ -244,7 +244,43 @@ $metadata = [ordered]@{
     source = "Power BI Service"
 }
 
-if ($ModelProfile -eq "hlq") {
+if ($ModelProfile -eq "clc") {
+    $accentUpperO = [char]0x00d3
+
+    # Auto-detect dimension table (tries common names until one responds)
+    $dimTableName = $null
+    $candidates = @("Actividades","Rubros","Partidas","Segmentacion","dimActividades","dimRubros","Rubro","Categoria","Categorias","Items","Conceptos")
+    foreach ($c in $candidates) {
+        try {
+            $body = @{ queries = @(@{ query = "EVALUATE TOPN(1, '$c')" }); serializerSettings = @{ includeNulls = $true } } | ConvertTo-Json -Depth 20
+            Invoke-PowerBIRestMethod -Url "groups/$WorkspaceId/datasets/$DatasetId/executeQueries" -Method Post -ContentType "application/json" -Body $body | Out-Null
+            $dimTableName = $c
+            Write-Info "Tabla de dimension encontrada: $dimTableName"
+            break
+        } catch { }
+    }
+    if (-not $dimTableName) { throw "No se pudo detectar la tabla de dimension para modelo clc. Tablas probadas: $($candidates -join ', ')" }
+
+    $areaColumnDax           = ConvertTo-DaxIdentifier -TableName $dimTableName -ObjectName "Area"
+    $segmentoColumnDax       = ConvertTo-DaxIdentifier -TableName $dimTableName -ObjectName "Segmento"
+    $etapaColumnDax          = ConvertTo-DaxIdentifier -TableName $dimTableName -ObjectName "Etapa"
+    $faseColumnDax           = ConvertTo-DaxIdentifier -TableName $dimTableName -ObjectName "Fase"
+    $monthColumnDax          = ConvertTo-DaxIdentifier -TableName "Calendario" -ObjectName "MesA"
+
+    $presupuestoRdiMeasure   = "Presupuesto Seg" + [char]0x00fa + "n RDI"
+    $rdiMeasureDax           = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName $presupuestoRdiMeasure
+    $pptoErMeasureDax        = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName $presupuestoRdiMeasure
+    $ejecutadoMeasureDax     = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName "Ejecutado"
+    $comprometidoMeasureDax  = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName "Comprometido"
+    $asignadoMeasureDax      = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName "Asignado"
+    $disponibleMeasureDax    = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName "Disponible"
+    $pctAsignadoMeasureDax   = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName "% Asignado"
+    $pctDisponibleMeasureDax = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName "% Disponible"
+
+    if ($AreaFilterValues.Count -eq 0) {
+        $AreaFilterValues = @(("CONSTRUCCI" + $accentUpperO + "N"), ("URBANIZACI" + $accentUpperO + "N"))
+    }
+} elseif ($ModelProfile -eq "hlq") {
     $accentO = [char]0x00f3
     $accentU = [char]0x00fa
     $accentUpperO = [char]0x00d3
