@@ -247,19 +247,29 @@ $metadata = [ordered]@{
 if ($ModelProfile -eq "clc") {
     $accentUpperO = [char]0x00d3
 
-    # Auto-detect dimension table (tries common names until one responds)
+    # Auto-detect dimension table using INFO.TABLES + INFO.COLUMNS
     $dimTableName = $null
-    $candidates = @("Actividades","Rubros","Partidas","Segmentacion","dimActividades","dimRubros","Rubro","Categoria","Categorias","Items","Conceptos")
-    foreach ($c in $candidates) {
-        try {
-            $body = @{ queries = @(@{ query = "EVALUATE TOPN(1, '$c')" }); serializerSettings = @{ includeNulls = $true } } | ConvertTo-Json -Depth 20
-            Invoke-PowerBIRestMethod -Url "groups/$WorkspaceId/datasets/$DatasetId/executeQueries" -Method Post -ContentType "application/json" -Body $body | Out-Null
-            $dimTableName = $c
-            Write-Info "Tabla de dimension encontrada: $dimTableName"
-            break
-        } catch { }
+    try {
+        $bodyT = @{ queries = @(@{ query = "EVALUATE INFO.TABLES()" }); serializerSettings = @{ includeNulls = $true } } | ConvertTo-Json -Depth 20
+        $respT  = Invoke-PowerBIRestMethod -Url "groups/$WorkspaceId/datasets/$DatasetId/executeQueries" -Method Post -ContentType "application/json" -Body $bodyT
+        $allTables = @(($respT | ConvertFrom-Json).results[0].tables[0].rows)
+        Write-Info "Tablas en el modelo: $(($allTables | ForEach-Object { $_.'[Name]' }) -join ', ')"
+
+        $bodyC = @{ queries = @(@{ query = "EVALUATE INFO.COLUMNS()" }); serializerSettings = @{ includeNulls = $true } } | ConvertTo-Json -Depth 20
+        $respC  = Invoke-PowerBIRestMethod -Url "groups/$WorkspaceId/datasets/$DatasetId/executeQueries" -Method Post -ContentType "application/json" -Body $bodyC
+        $allCols = @(($respC | ConvertFrom-Json).results[0].tables[0].rows)
+
+        $areaCol = @($allCols | Where-Object { $_.'[ExplicitName]' -eq 'Area' -or $_.'[InferredName]' -eq 'Area' })[0]
+        if ($areaCol) {
+            $tId = $areaCol.'[TableID]'
+            $dimRow = @($allTables | Where-Object { $_.'[ID]' -eq $tId })[0]
+            if ($dimRow) { $dimTableName = $dimRow.'[Name]' }
+        }
+        if ($dimTableName) { Write-Info "Tabla de dimension encontrada: $dimTableName" }
+        else { throw "Ninguna tabla tiene columna 'Area'. Tablas disponibles: $(($allTables | ForEach-Object { $_.'[Name]' }) -join ', ')" }
+    } catch {
+        throw "No se pudo detectar tabla de dimension: $_"
     }
-    if (-not $dimTableName) { throw "No se pudo detectar la tabla de dimension para modelo clc. Tablas probadas: $($candidates -join ', ')" }
 
     $areaColumnDax           = ConvertTo-DaxIdentifier -TableName $dimTableName -ObjectName "Area"
     $segmentoColumnDax       = ConvertTo-DaxIdentifier -TableName $dimTableName -ObjectName "Segmento"
