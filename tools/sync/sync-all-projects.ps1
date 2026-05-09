@@ -112,6 +112,20 @@ try {
     Write-Warning "[RV4] Error HLQ: $_"
 }
 
+# ── CLC ──────────────────────────────────────────────────────────────────────
+try {
+    Write-Host "[RV4] Sincronizando CLC ($mesA)..." -ForegroundColor Cyan
+    & (Join-Path $powerbIDir "sync-powerbi-clc.ps1") `
+        -MesA              $mesA `
+        -UploadSupabase `
+        -SupabaseServiceKey $SupabaseServiceKey
+    $completed.Add("CLC — Condado La Ceiba")
+    Write-Host "[RV4] CLC completado." -ForegroundColor Green
+} catch {
+    $errors.Add("CLC: $($_.Exception.Message)")
+    Write-Warning "[RV4] Error CLC: $_"
+}
+
 # ── EMAIL ─────────────────────────────────────────────────────────────────────
 $liCompleted = ($completed | ForEach-Object { "<li>&#10003; $_</li>" }) -join ""
 $liErrors    = ($errors    | ForEach-Object { "<li style='color:#c0392b'>&#10007; $_</li>" }) -join ""

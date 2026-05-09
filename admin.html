@@ -812,6 +812,15 @@
                     <div style="font-size:0.75rem;color:var(--gray);margin-bottom:10px;">Último sync: <span id="pbi-last-hlq">—</span></div>
                     <a href="dashboard.html?project=Hacienda%20La%20Querencia&pbi=hlq" target="_blank" style="font-size:0.73rem;color:var(--blue);text-decoration:none;">↗ Ver dashboard</a>
                 </div>
+                <!-- CLC -->
+                <div class="m-card" style="padding:16px 18px;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                        <span id="pbi-dot-clc" style="width:10px;height:10px;border-radius:50%;background:var(--gray2);flex-shrink:0;"></span>
+                        <div class="m-card-title" style="margin:0;font-size:0.83rem;">CLC — Condado La Ceiba</div>
+                    </div>
+                    <div style="font-size:0.75rem;color:var(--gray);margin-bottom:10px;">Último sync: <span id="pbi-last-clc">—</span></div>
+                    <a href="dashboard-clc.html" target="_blank" style="font-size:0.73rem;color:var(--blue);text-decoration:none;">↗ Ver dashboard</a>
+                </div>
             </div>
 
             <div class="m-card" style="padding:24px;text-align:center;max-width:500px;margin:0 auto;">
@@ -1930,7 +1939,7 @@ Si no solicitaste este cambio, por favor contacta de inmediato al área de Costo
             );
             const { data } = await sb2.from('powerbi_resumen_cache')
                 .select('project_key, updated_at')
-                .in('project_key', ['bse', 'hlq', 'bdj', 'bdp', 'rdb', 'cse']);
+                .in('project_key', ['bse', 'hlq', 'bdj', 'bdp', 'rdb', 'cse', 'clc']);
             if (!data) return;
             const now = new Date();
             const todayStr = now.toDateString();
