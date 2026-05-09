@@ -245,61 +245,24 @@ $metadata = [ordered]@{
 }
 
 if ($ModelProfile -eq "clc") {
-    $accentUpperO = [char]0x00d3
-
-    # Auto-detect dimension table by probing candidate names
-    $dimTableName = $null
-    $o = [char]0x00f3  # ó
-    $candidates = @(
-        "Rubros","Actividades","Partidas","Segmentacion","Rubro",
-        "Segmentaci$($o)n","dimSegmentaci$($o)n","dimSegmentacion",
-        "Presupuesto","Detalle","Detalles","Renglones","Renglon","Rengl$($o)n",
-        "Partida","Obras","Elementos","Componentes","Tareas","Conceptos",
-        "Items","Categoria","Categorias","dimActividades","dimRubros",
-        "PresupuestoDetalle","BudgetItems","Budget","Lineas","Subactividades",
-        "Segmento","Segmentos","dimPartidas","dimConceptos","dimElementos",
-        "Trabajo","Trabajos","Renglon Presupuestario","Renglones Presupuestarios"
-    )
-    foreach ($c in $candidates) {
-        try {
-            $safe = $c.Replace("'","''")
-            $bPrb = @{ queries = @(@{ query = "EVALUATE TOPN(1, '$safe')" }); serializerSettings = @{ includeNulls = $true } } | ConvertTo-Json -Depth 20
-            Invoke-PowerBIRestMethod -Url "groups/$WorkspaceId/datasets/$DatasetId/executeQueries" -Method Post -ContentType "application/json" -Body $bPrb | Out-Null
-            $dimTableName = $c
-            Write-Info "Tabla de dimension encontrada: $dimTableName"
-            break
-        } catch { }
-    }
-    if (-not $dimTableName) {
-        # Last resort: try to find table via Area column query
-        $areaVariants = @("Area","$(([char]0x00c1))rea","area","AREA")
-        foreach ($av in $areaVariants) {
-            try {
-                $bAv = @{ queries = @(@{ query = "EVALUATE SUMMARIZECOLUMNS(BLANK(),BLANK(),""t"",COALESCE(MAXX(ALL('Medidas'),""x""),""""))" }); serializerSettings = @{ includeNulls = $true } } | ConvertTo-Json -Depth 20
-            } catch { }
-        }
-        throw "No se pudo detectar tabla de dimension. Candidatos probados: $($candidates -join ', '). Verifica el nombre de la tabla en Power BI Desktop."
-    }
-
-    $areaColumnDax           = ConvertTo-DaxIdentifier -TableName $dimTableName -ObjectName "Area"
-    $segmentoColumnDax       = ConvertTo-DaxIdentifier -TableName $dimTableName -ObjectName "Segmento"
-    $etapaColumnDax          = ConvertTo-DaxIdentifier -TableName $dimTableName -ObjectName "Etapa"
-    $faseColumnDax           = ConvertTo-DaxIdentifier -TableName $dimTableName -ObjectName "Fase"
+    # CLC model: dimFase[Fase] as primary dimension, no Area/Segmento/Etapa
+    $faseColumnDax           = ConvertTo-DaxIdentifier -TableName "dimFase" -ObjectName "Fase"
     $monthColumnDax          = ConvertTo-DaxIdentifier -TableName "Calendario" -ObjectName "MesA"
+    $areaColumnDax           = $faseColumnDax
+    $segmentoColumnDax       = $faseColumnDax
+    $etapaColumnDax          = $faseColumnDax
 
-    $presupuestoRdiMeasure   = "Presupuesto Seg" + [char]0x00fa + "n RDI"
-    $rdiMeasureDax           = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName $presupuestoRdiMeasure
-    $pptoErMeasureDax        = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName $presupuestoRdiMeasure
-    $ejecutadoMeasureDax     = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName "Ejecutado"
-    $comprometidoMeasureDax  = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName "Comprometido"
-    $asignadoMeasureDax      = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName "Asignado"
-    $disponibleMeasureDax    = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName "Disponible"
-    $pctAsignadoMeasureDax   = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName "% Asignado"
-    $pctDisponibleMeasureDax = ConvertTo-DaxIdentifier -TableName "Medidas" -ObjectName "% Disponible"
+    # No Presupuesto/RDI in CLC — Asignado is the budget reference
+    $rdiMeasureDax           = "[Asignado]"
+    $pptoErMeasureDax        = "[Asignado]"
+    $ejecutadoMeasureDax     = "[Ejecutado]"
+    $comprometidoMeasureDax  = "[Comprometido]"
+    $asignadoMeasureDax      = "[Asignado]"
+    $disponibleMeasureDax    = "[Disponible]"
+    $pctAsignadoMeasureDax   = "[% Asignado]"
+    $pctDisponibleMeasureDax = "[% Disponible]"
 
-    if ($AreaFilterValues.Count -eq 0) {
-        $AreaFilterValues = @(("CONSTRUCCI" + $accentUpperO + "N"), ("URBANIZACI" + $accentUpperO + "N"))
-    }
+    $AreaFilterValues = @()
 } elseif ($ModelProfile -eq "hlq") {
     $accentO = [char]0x00f3
     $accentU = [char]0x00fa
@@ -348,9 +311,13 @@ if ($ModelProfile -eq "clc") {
 }
 
 $areaFilterListDax = ($AreaFilterValues | ForEach-Object { ConvertTo-DaxStringLiteral $_ }) -join ", "
-$areaFilterDax = "TREATAS({$areaFilterListDax}, $areaColumnDax)"
+$areaFilterDax = if ($ModelProfile -eq "clc") {
+    "TREATAS(VALUES($areaColumnDax), $areaColumnDax)"
+} else {
+    "TREATAS({$areaFilterListDax}, $areaColumnDax)"
+}
 $monthFilterDax = "TREATAS({$(ConvertTo-DaxStringLiteral $MesA)}, $monthColumnDax)"
-$mainFilterDax = if ($ModelProfile -eq "hlq") { "" } else { "$monthFilterDax," }
+$mainFilterDax = if ($ModelProfile -eq "hlq" -or $ModelProfile -eq "clc") { "" } else { "$monthFilterDax," }
 $metadata.filters.areas = @($AreaFilterValues)
 
 $queries = [ordered]@{
@@ -449,7 +416,7 @@ ORDER BY $monthColumnDax
 
 if ($IncludeFilterDetail) {
     # bse model: Rubros[Fase] does not exist — skip porFase and omit it from detalleFiltros
-    $hasFaseColumn = ($ModelProfile -ne "bse")
+    $hasFaseColumn = ($ModelProfile -ne "bse" -and $ModelProfile -ne "clc")
 
     if ($hasFaseColumn) {
         $queries.porFase = @"
