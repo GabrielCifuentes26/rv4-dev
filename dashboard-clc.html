@@ -2380,7 +2380,8 @@
         if (avgEjecPct > 0.01 && avgEjecPct < 0.99) {
             const yAvg = (PAD_T + CHART_H * (1 - avgEjecPct)).toFixed(1);
             parts.push(`<line x1="${PAD_L}" y1="${yAvg}" x2="${W-PAD_R}" y2="${yAvg}" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.7"/>`);
-            parts.push(`<text x="${W-PAD_R+5}" y="${(+yAvg+4).toFixed(1)}" font-size="9" fill="#6366f1" font-weight="700">∅${Math.round(avgEjecPct*100)}%</text>`);
+            parts.push(`<text x="${W-PAD_R+5}" y="${(+yAvg).toFixed(1)}" font-size="8.5" fill="#6366f1" font-weight="600">Prom.</text>`);
+            parts.push(`<text x="${W-PAD_R+5}" y="${(+yAvg+11).toFixed(1)}" font-size="8.5" fill="#6366f1" font-weight="700">ejec. ${Math.round(avgEjecPct*100)}%</text>`);
         }
 
         // Columns
