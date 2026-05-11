@@ -24,8 +24,8 @@
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcGdyb2psaXFleXljdmdua3JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzA1NzYsImV4cCI6MjA5MTM0NjU3Nn0.Y6FQ-1qWd7HPMvTnK4alpKxM-YLJ5CsKmkorAZKMJrg'
         );
 
-        const PROJECT_NAME = 'Condado La Ceiba';
-        const POWERBI_PROJECT_KEY = 'clc';
+        const PROJECT_NAME = 'Hacienda El Sol';
+        const POWERBI_PROJECT_KEY = 'hsl';
 
         client.auth.getSession().then(({ data: { session } }) => {
             if (!session) { window.location.href = 'login.html'; }
@@ -813,8 +813,8 @@
                 <span id="project-title">Proyecto</span>
                 <svg class="proj-chevron" viewBox="0 0 10 6" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
                 <div class="proj-dropdown">
-                    <a href="dashboard-clc.html" class="proj-opt" data-key="clc"><svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>Condado La Ceiba</a>
                     <a href="dashboard-hsl.html" class="proj-opt" data-key="hsl"><svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>Hacienda El Sol</a>
+                    <a href="dashboard-clc.html" class="proj-opt" data-key="clc"><svg viewBox="0 0 24 24"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>Condado La Ceiba</a>
                 </div>
             </div>
         </div>
