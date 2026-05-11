@@ -1099,19 +1099,21 @@
     async function loadSapSummariesFromSupabase(projectsWithSap) {
         const projectKeys = projectsWithSap.map(project => SAP_PROJECT_KEYS[project.id]);
         const { data, error } = await client
-            .from('powerbi_resumen_cache')
-            .select('project_key, payload, updated_at')
+            .from('v_project_sap_summary')
+            .select('project_key, presupuesto_sap, asignado, pct_asignado, updated_at')
             .in('project_key', projectKeys);
 
         if (error || !Array.isArray(data) || data.length === 0) return false;
 
-        data.forEach(cacheRow => {
-            const project = projectsWithSap.find(item => SAP_PROJECT_KEYS[item.id] === cacheRow.project_key);
-            const totalesRaw = cacheRow.payload?.datasets?.totales;
-            const totalsRow = (Array.isArray(totalesRaw) ? totalesRaw[0] : totalesRaw) || cacheRow.payload?.rows?.[0];
-            setSapSummaryFromRow(project, totalsRow);
-            setSapAreasFromRows(project, cacheRow.payload?.datasets?.porArea);
-            if (project && cacheRow.updated_at) project.sapUpdatedAt = cacheRow.updated_at;
+        data.forEach(row => {
+            const project = projectsWithSap.find(item => SAP_PROJECT_KEYS[item.id] === row.project_key);
+            if (!project) return;
+            setSapSummary(project, {
+                presupuestoSap: row.presupuesto_sap,
+                asignado:       row.asignado,
+                pct:            row.pct_asignado
+            });
+            if (row.updated_at) project.sapUpdatedAt = row.updated_at;
         });
 
         return projectsWithSap.some(project => project.sapSummary && !project.sapSummary.error);
