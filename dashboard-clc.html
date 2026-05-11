@@ -721,6 +721,19 @@
             margin-bottom: 14px; gap: 12px; flex-wrap: wrap;
         }
         .tendencia-body { position: relative; min-height: 320px; }
+        .mekko-col { transition: opacity .18s; }
+        #mekko-tooltip {
+            display: none; position: absolute; pointer-events: none;
+            background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+            padding: 10px 14px; box-shadow: 0 8px 24px rgba(30,58,95,0.13);
+            min-width: 185px; z-index: 100; font-family: Inter, sans-serif;
+        }
+        .mekko-tip-title { font-weight: 700; color: #1e3a5f; margin-bottom: 7px; font-size: 0.78rem; }
+        .mekko-tip-ppto { font-size: 0.7rem; color: #64748b; padding-bottom: 7px; margin-bottom: 7px; border-bottom: 1px solid #f1f5f9; display:flex; justify-content:space-between; }
+        .mekko-tip-ppto strong { color: #1e3a5f; font-size: 0.78rem; }
+        .mekko-tip-row { display: flex; align-items: center; gap: 6px; padding: 2px 0; font-size: 0.72rem; color: #475569; }
+        .mekko-tip-row span:nth-child(2) { flex: 1; }
+        .mekko-tip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
         .tendencia-toggle {
             display: flex; gap: 0; flex-shrink: 0;
             background: #e2e8f0; border-radius: 8px; padding: 2px;
@@ -1043,6 +1056,7 @@
             </div>
             <div class="tendencia-body">
                 <div id="mekko-container" style="width:100%"></div>
+                <div id="mekko-tooltip"></div>
             </div>
         </div>
     </div>
@@ -2335,81 +2349,133 @@
 
     function drawMekko(container, groups) {
         const W = container.clientWidth || 800;
-        const PAD_L = 38, PAD_R = 8, PAD_T = 12, PAD_B = 50;
-        const CHART_H = 260;
+        const PAD_L = 42, PAD_R = 36, PAD_T = 16, PAD_B = 52;
+        const CHART_H = 268;
         const H = CHART_H + PAD_T + PAD_B;
-        const GAP = 2;
-        const C_EJEC = '#10b981', C_COMP = '#f59e0b', C_DISP = '#dde3ed';
+        const GAP = 3;
+        const C_EJEC = '#10b981', C_COMP = '#f59e0b', C_DISP = '#e8edf6';
+        const R = 2;
 
         const totalPpto = groups.reduce((s, g) => s + asNumber(g.PresupuestoErequester), 0);
+        const totalEjec = groups.reduce((s, g) => s + asNumber(g.EjecutadoErequester), 0);
+        const avgEjecPct = totalPpto > 0 ? totalEjec / totalPpto : 0;
         const availW = (W - PAD_L - PAD_R) - (groups.length - 1) * GAP;
-        const colWFixed = availW / groups.length;
+        const colW = availW / groups.length;
         const fmtVal = v => v >= 1e6 ? `${(v/1e6).toFixed(2)}M` : v >= 1000 ? `${Math.round(v/1000)}K` : `${Math.round(v)}`;
 
         const parts = [];
 
-        // Grid lines & Y-axis labels
+        // Background
+        parts.push(`<rect x="${PAD_L}" y="${PAD_T}" width="${(W-PAD_L-PAD_R).toFixed(1)}" height="${CHART_H}" fill="#fafbfd" rx="${R}"/>`);
+
+        // Grid lines
         [0, 0.25, 0.5, 0.75, 1].forEach(pct => {
             const y = (PAD_T + CHART_H * (1 - pct)).toFixed(1);
-            parts.push(`<text x="${PAD_L - 6}" y="${(+y + 4).toFixed(1)}" text-anchor="end" font-size="9.5" fill="#94a3b8">${Math.round(pct*100)}%</text>`);
-            parts.push(`<line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#f1f5f9" stroke-width="1"/>`);
+            const isEdge = pct === 0 || pct === 1;
+            parts.push(`<text x="${PAD_L - 7}" y="${(+y + 4).toFixed(1)}" text-anchor="end" font-size="9.5" fill="#94a3b8">${Math.round(pct*100)}%</text>`);
+            parts.push(`<line x1="${PAD_L}" y1="${y}" x2="${W-PAD_R}" y2="${y}" stroke="${isEdge ? '#dde3ed' : '#eef1f7'}" stroke-width="${isEdge ? 1.5 : 1}"/>`);
         });
 
+        // Average execution line
+        if (avgEjecPct > 0.01 && avgEjecPct < 0.99) {
+            const yAvg = (PAD_T + CHART_H * (1 - avgEjecPct)).toFixed(1);
+            parts.push(`<line x1="${PAD_L}" y1="${yAvg}" x2="${W-PAD_R}" y2="${yAvg}" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.7"/>`);
+            parts.push(`<text x="${W-PAD_R+5}" y="${(+yAvg+4).toFixed(1)}" font-size="9" fill="#6366f1" font-weight="700">∅${Math.round(avgEjecPct*100)}%</text>`);
+        }
+
+        // Columns
         let xCursor = PAD_L;
         groups.forEach((g, i) => {
             const ppto = asNumber(g.PresupuestoErequester);
-            const colW = colWFixed;
             const ejec = Math.min(asNumber(g.EjecutadoErequester), ppto);
             const comp = Math.min(Math.max(0, asNumber(g.ComprometidoErequester)), ppto - ejec);
             const disp = Math.max(0, ppto - ejec - comp);
-            const pEjec = ejec / ppto, pComp = comp / ppto, pDisp = disp / ppto;
+            const pEjec = ejec/ppto, pComp = comp/ppto, pDisp = disp/ppto;
 
             const yDisp = PAD_T, hDisp = CHART_H * pDisp;
             const yComp = yDisp + hDisp, hComp = CHART_H * pComp;
             const yEjec = yComp + hComp, hEjec = CHART_H * pEjec;
-
-            const tip = `${g.label}\nPPTO: ${fmtVal(ppto)}\nEjec: ${fmtVal(ejec)} (${Math.round(pEjec*100)}%)\nComp: ${fmtVal(comp)} (${Math.round(pComp*100)}%)\nDisp: ${fmtVal(disp)} (${Math.round(pDisp*100)}%)`;
             const cx = (xCursor + colW / 2).toFixed(1);
 
-            const seg = (y, h, fill) => h > 0.5
-                ? `<rect x="${xCursor.toFixed(1)}" y="${y.toFixed(1)}" width="${colW.toFixed(1)}" height="${h.toFixed(1)}" fill="${fill}"><title>${tip}</title></rect>` : '';
-            parts.push(seg(yDisp, hDisp, C_DISP));
-            parts.push(seg(yComp, hComp, C_COMP));
-            parts.push(seg(yEjec, hEjec, C_EJEC));
+            const isDimFase = mekkoDim === 'Rubros[Fase]';
+            const fullLabel = isDimFase && /^\d+$/.test((g.label||'').trim()) ? `Fase ${parseInt(g.label,10)}` : g.label;
 
-            const MIN_H1 = 14, MIN_H2 = 26;
-            const segLabel = (y, h, pct, val, fillPct, fillVal) => {
-                if (h <= MIN_H1 || colW <= 14) return '';
-                const mid = (y + h / 2).toFixed(1);
-                if (h > MIN_H2) {
-                    // Two lines: amount top, % bottom
-                    return `<text x="${cx}" y="${(+mid - 5).toFixed(1)}" text-anchor="middle" font-size="9" fill="${fillVal}" font-weight="700" pointer-events="none">${val}</text>` +
-                           `<text x="${cx}" y="${(+mid + 7).toFixed(1)}" text-anchor="middle" font-size="8" fill="${fillPct}" font-weight="500" pointer-events="none">${pct}%</text>`;
-                }
-                return `<text x="${cx}" y="${(+mid + 4).toFixed(1)}" text-anchor="middle" font-size="9" fill="${fillVal}" font-weight="700" pointer-events="none">${val}</text>`;
+            parts.push(`<g class="mekko-col" data-label="${fullLabel}" data-ppto="${ppto}" data-ejec="${ejec}" data-comp="${comp}" data-disp="${disp}" data-pejec="${pEjec.toFixed(4)}" data-pcomp="${pComp.toFixed(4)}" data-pdisp="${pDisp.toFixed(4)}" style="cursor:pointer">`);
+
+            const rect = (x, y, w, h, fill) => h > 0.5
+                ? `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="${fill}" rx="${R}"/>`
+                : '';
+            parts.push(rect(xCursor, yDisp, colW, hDisp, C_DISP));
+            parts.push(rect(xCursor, yComp, colW, hComp, C_COMP));
+            parts.push(rect(xCursor, yEjec, colW, hEjec, C_EJEC));
+
+            const MIN1 = 14, MIN2 = 28;
+            const lbl = (y, h, val, pct, cv, cp) => {
+                if (h <= MIN1 || colW <= 16) return '';
+                const my = (y + h/2).toFixed(1);
+                return h > MIN2
+                    ? `<text x="${cx}" y="${(+my-5).toFixed(1)}" text-anchor="middle" font-size="9" fill="${cv}" font-weight="700" pointer-events="none">${val}</text><text x="${cx}" y="${(+my+7).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${cp}" pointer-events="none">${pct}%</text>`
+                    : `<text x="${cx}" y="${(+my+4).toFixed(1)}" text-anchor="middle" font-size="9" fill="${cv}" font-weight="700" pointer-events="none">${val}</text>`;
             };
-            parts.push(segLabel(yDisp, hDisp, Math.round(pDisp*100), fmtVal(disp), '#475569', '#64748b'));
-            parts.push(segLabel(yComp, hComp, Math.round(pComp*100), fmtVal(comp), 'rgba(255,255,255,0.8)', '#fff'));
-            parts.push(segLabel(yEjec, hEjec, Math.round(pEjec*100), fmtVal(ejec), 'rgba(255,255,255,0.8)', '#fff'));
+            parts.push(lbl(yDisp, hDisp, fmtVal(disp),  Math.round(pDisp*100), '#475569', '#94a3b8'));
+            parts.push(lbl(yComp, hComp, fmtVal(comp),  Math.round(pComp*100), '#fff',    'rgba(255,255,255,0.75)'));
+            parts.push(lbl(yEjec, hEjec, fmtVal(ejec),  Math.round(pEjec*100), '#fff',    'rgba(255,255,255,0.75)'));
 
-            const labelY = PAD_T + CHART_H + 14;
-            const shortLabel = mekkoDim === 'Rubros[Fase]'
+            parts.push(`</g>`);
+
+            // Bottom labels (outside group — no dimming)
+            const lY = PAD_T + CHART_H + 14;
+            const shortLbl = isDimFase
                 ? (/^\d+$/.test((g.label||'').trim()) ? `F${parseInt(g.label,10)}` : String(g.label).substring(0,4))
-                : String(g.label).substring(0, 9);
+                : String(g.label).substring(0,9);
             if (colW > 10)
-                parts.push(`<text x="${cx}" y="${labelY.toFixed(1)}" text-anchor="middle" font-size="9" fill="#475569" font-weight="600" pointer-events="none">${shortLabel}</text>`);
-            if (colW > 30)
-                parts.push(`<text x="${cx}" y="${(labelY+13).toFixed(1)}" text-anchor="middle" font-size="8.5" fill="#94a3b8" pointer-events="none">${fmtVal(ppto)}</text>`);
+                parts.push(`<text x="${cx}" y="${lY}" text-anchor="middle" font-size="9" fill="#334155" font-weight="600">${shortLbl}</text>`);
+            if (colW > 32)
+                parts.push(`<text x="${cx}" y="${lY+13}" text-anchor="middle" font-size="8" fill="#94a3b8">${fmtVal(ppto)}</text>`);
 
-            if (i < groups.length - 1) {
-                const sx = (xCursor + colW).toFixed(1);
-                parts.push(`<line x1="${sx}" y1="${PAD_T}" x2="${sx}" y2="${PAD_T + CHART_H}" stroke="#fff" stroke-width="${GAP}"/>`);
-            }
+            if (i < groups.length - 1)
+                parts.push(`<line x1="${(xCursor+colW).toFixed(1)}" y1="${PAD_T}" x2="${(xCursor+colW).toFixed(1)}" y2="${PAD_T+CHART_H}" stroke="#fff" stroke-width="${GAP}"/>`);
+
             xCursor += colW + GAP;
         });
 
-        parts.push(`<rect x="${PAD_L}" y="${PAD_T}" width="${(W - PAD_L - PAD_R).toFixed(1)}" height="${CHART_H}" fill="none" stroke="#e2e8f0" stroke-width="1"/>`);
+        // Border
+        parts.push(`<rect x="${PAD_L}" y="${PAD_T}" width="${(W-PAD_L-PAD_R).toFixed(1)}" height="${CHART_H}" fill="none" stroke="#dde3ed" stroke-width="1" rx="${R}"/>`);
+
         container.innerHTML = `<svg width="${W}" height="${H}" style="display:block;overflow:visible;font-family:Inter,sans-serif">${parts.join('')}</svg>`;
+
+        // Hover: tooltip + dimming
+        const tooltip = document.getElementById('mekko-tooltip');
+        const cols = container.querySelectorAll('.mekko-col');
+
+        cols.forEach(col => {
+            col.addEventListener('mouseenter', e => {
+                const d = col.dataset;
+                const ejec = +d.ejec, comp = +d.comp, disp = +d.disp, ppto = +d.ppto;
+                const pEjec = +d.pejec, pComp = +d.pcomp, pDisp = +d.pdisp;
+                if (tooltip) {
+                    tooltip.innerHTML = `
+                        <div class="mekko-tip-title">${d.label}</div>
+                        <div class="mekko-tip-ppto"><span>Presupuesto</span><strong>${fmtVal(ppto)}</strong></div>
+                        <div class="mekko-tip-row"><span class="mekko-tip-dot" style="background:${C_EJEC}"></span><span>Ejecutado</span><span style="font-weight:700;color:${C_EJEC}">${fmtVal(ejec)}</span><span style="color:#94a3b8">${Math.round(pEjec*100)}%</span></div>
+                        <div class="mekko-tip-row"><span class="mekko-tip-dot" style="background:${C_COMP}"></span><span>Comprometido</span><span style="font-weight:700;color:${C_COMP}">${fmtVal(comp)}</span><span style="color:#94a3b8">${Math.round(pComp*100)}%</span></div>
+                        <div class="mekko-tip-row"><span class="mekko-tip-dot" style="background:#94a3b8"></span><span>Disponible</span><span style="font-weight:700;color:#475569">${fmtVal(disp)}</span><span style="color:#94a3b8">${Math.round(pDisp*100)}%</span></div>`;
+                    const cRect = col.getBoundingClientRect();
+                    const bRect = container.getBoundingClientRect();
+                    const tipW = 195, tipH = 130;
+                    let tx = cRect.left - bRect.left + cRect.width/2 - tipW/2;
+                    let ty = cRect.top - bRect.top - tipH - 10;
+                    if (ty < 4) ty = cRect.bottom - bRect.top + 6;
+                    tx = Math.max(4, Math.min(tx, bRect.width - tipW - 4));
+                    tooltip.style.cssText = `display:block;left:${tx}px;top:${ty}px;`;
+                }
+                cols.forEach(c => { c.style.opacity = c === col ? '1' : '0.35'; });
+            });
+            col.addEventListener('mouseleave', () => {
+                if (tooltip) tooltip.style.display = 'none';
+                cols.forEach(c => { c.style.opacity = '1'; });
+            });
+        });
     }
 
     function renderCharts(etapaRows, areaRows, segmentoRows) {
