@@ -1634,7 +1634,7 @@
         document.getElementById('faseChart')?.addEventListener('click', e => {
             const pts = areaChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
             if (!pts.length) return;
-            const label = areaChart.data.labels[pts[0].index];
+            const label = areaChart._rawLabels?.[pts[0].index] ?? areaChart.data.labels[pts[0].index];
             if (label) applyChartFilter('segmentos', label, null);
         });
 
@@ -2632,7 +2632,8 @@
 
 
         const safeLog = v => Math.max(0.01, v); // log scale requires > 0
-        areaChart.data.labels           = segs.map(r => String(r.label || dimension(r, 'Rubros[Segmento]') || '').toUpperCase());
+        areaChart._rawLabels            = segs.map(r => String(r.label || dimension(r, 'Rubros[Segmento]') || ''));
+        areaChart.data.labels           = areaChart._rawLabels.map(l => l.toUpperCase());
         areaChart.data.datasets[0].data = segs.map(r => safeLog(toMillions(rowMetric(r, 'AsignadoErequester'))));
         areaChart.data.datasets[1].data = segs.map(r => {
             const total = toMillions(rowMetric(r, 'RdiTotal'));
