@@ -1224,7 +1224,7 @@
     function renderTotalBar() {
         const projectsWithData = activeCategory === 'lotes'
             ? PROJECTS.filter(p => p.cat === 'lotes' && !p.wip && p.sapSummary && !p.sapSummary.error)
-            : PROJECTS.filter(p => SAP_PROJECT_KEYS[p.id] && p.sapSummary && !p.sapSummary.error);
+            : PROJECTS.filter(p => p.cat === 'casas' && SAP_PROJECT_KEYS[p.id] && p.sapSummary && !p.sapSummary.error);
         if (projectsWithData.length === 0 && activeCategory !== 'lotes') return;
         const totalPpto = projectsWithData.reduce((sum, p) => sum + (p.sapSummary.presupuestoSap || 0), 0);
         const totalAsig = projectsWithData.reduce((sum, p) => sum + (p.sapSummary.asignado || 0), 0);
