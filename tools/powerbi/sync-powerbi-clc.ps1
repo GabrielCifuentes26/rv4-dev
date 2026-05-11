@@ -13,10 +13,10 @@ $syncArgs = @{
     ProjectKey  = "clc"
     ProjectName = "Condado La Ceiba"
     MesA        = $MesA
-    ModelProfile        = "clc"
+    ModelProfile        = "hsl"
     OutputDir           = "data/powerbi/clc"
     IncludeFilterDetail = $true
-    AreaFilterValues    = @(("CONSTRUCCI" + [char]0x00d3 + "N"), ("URBANIZACI" + [char]0x00d3 + "N"))
+    AreaFilterValues    = @("CONSTRUCCION", "URBANIZACION")
     SupabaseServiceKey  = $SupabaseServiceKey
 }
 
