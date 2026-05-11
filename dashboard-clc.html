@@ -1022,7 +1022,7 @@
                         <span class="tendencia-toggle-label">Ver por:</span>
                         <div class="tendencia-toggle" id="mekko-dim-toggle">
                             <button class="tendencia-btn active" data-dim="Rubros[Fase]">Fase</button>
-                            <button class="tendencia-btn" data-dim="Rubros[Area]">Área</button>
+                            <button class="tendencia-btn" data-dim="Rubros[Segmento]">Segmento</button>
                         </div>
                     </div>
                 </div>
@@ -2296,7 +2296,7 @@
             btn.style.display = hasFaseData ? '' : 'none';
         });
         if (!hasFaseData && mekkoDim === 'Rubros[Fase]') {
-            mekkoDim = 'Rubros[Area]';
+            mekkoDim = 'Rubros[Segmento]';
             document.querySelectorAll('#mekko-dim-toggle .tendencia-btn').forEach(b => {
                 b.classList.toggle('active', b.dataset.dim === mekkoDim);
             });
