@@ -126,6 +126,8 @@
         .eac-row { display: grid; grid-template-columns: 175px 1fr 90px; align-items: center; gap: 14px; cursor: pointer; border-radius: 6px; transition: background .15s; }
         .eac-row:hover { background: rgba(14,165,233,0.05); }
         .eac-row.eac-active { background: rgba(14,165,233,0.09); outline: 1.5px solid rgba(14,165,233,0.35); outline-offset: 2px; }
+        .eac-row.chart-selected { background: rgba(14,165,233,0.13); outline: 2px solid rgba(14,165,233,0.45); outline-offset: 2px; }
+        #faseChart { cursor: pointer; }
         .eac-area { display: flex; align-items: center; gap: 12px; }
         .eac-icon-wrap {
             width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
@@ -1582,19 +1584,59 @@
         });
         document.addEventListener('click', closeFilterMenus);
 
-        // Click en fila EAC → filtro de área (toggle)
-        const _eacCont = document.getElementById('eac-rows');
-        if (_eacCont) {
-            _eacCont.addEventListener('click', e => {
-                const row = e.target.closest('.eac-row[data-rawname]');
-                if (!row) return;
-                const rawName = row.dataset.rawname;
-                const current = powerBIState.filters.areas || [];
-                powerBIState.filters.areas = (current.length === 1 && current[0] === rawName) ? [] : [rawName];
-                populateFilterControls('areas');
-                renderPowerBIView();
-            });
+        // ── Chart-click filters ──────────────────────────────────
+        const chip    = document.getElementById('kpi-active-chip');
+        const chipLbl = document.getElementById('kpi-chip-lbl');
+        const chipClear = document.getElementById('kpi-chip-clear');
+        let cfKey = null, cfVal = null;
+
+        function clearVisualSelection() {
+            document.querySelectorAll('.eac-row.chart-selected').forEach(el => el.classList.remove('chart-selected'));
+            document.querySelectorAll('#resumen-area-body .chart-row-selected').forEach(el => el.classList.remove('chart-row-selected'));
         }
+
+        function clearChartFilter(andRender) {
+            if (!cfKey) return;
+            powerBIState.filters[cfKey] = [];
+            populateFilterControls(cfKey);
+            cfKey = null; cfVal = null;
+            clearVisualSelection();
+            chip.classList.remove('visible');
+            if (andRender !== false) renderPowerBIView();
+        }
+
+        function applyChartFilter(key, value, triggerEl) {
+            if (cfKey === key && cfVal === value) { clearChartFilter(); return; }
+            if (cfKey && cfKey !== key) {
+                powerBIState.filters[cfKey] = [];
+                populateFilterControls(cfKey);
+            }
+            clearVisualSelection();
+            powerBIState.filters[key] = [value];
+            cfKey = key; cfVal = value;
+            if (triggerEl) triggerEl.classList.add('chart-selected');
+            const meta = CAT_META[key] || { label: key, color: '#0ea5e9' };
+            chip.style.background = meta.color;
+            chip.style.boxShadow  = `0 3px 10px ${meta.color}55`;
+            chipLbl.textContent   = `\: \`;
+            chip.classList.add('visible');
+            populateFilterControls(key);
+            renderPowerBIView();
+        }
+
+        chipClear.addEventListener('click', () => clearChartFilter());
+
+        document.getElementById('eac-rows')?.addEventListener('click', e => {
+            const row = e.target.closest('.eac-row[data-rawname]');
+            if (row) applyChartFilter('areas', row.dataset.rawname, row);
+        });
+
+        document.getElementById('faseChart')?.addEventListener('click', e => {
+            const pts = areaChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+            if (!pts.length) return;
+            const label = areaChart.data.labels[pts[0].index];
+            if (label) applyChartFilter('segmentos', label, null);
+        });
 
         // Botón ✕ por filtro individual
         document.querySelectorAll('.filter-clear-one[data-clear-filter]').forEach(btn => {
