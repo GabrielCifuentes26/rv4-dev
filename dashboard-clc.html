@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -123,7 +123,9 @@
         }
         .eac-pct-header { font-size: 0.7rem; font-weight: 700; color: var(--gray); white-space: nowrap; }
         .eac-rows { display: flex; flex-direction: column; gap: 56px; flex: 1; justify-content: center; }
-        .eac-row { display: grid; grid-template-columns: 175px 1fr 90px; align-items: center; gap: 14px; }
+        .eac-row { display: grid; grid-template-columns: 175px 1fr 90px; align-items: center; gap: 14px; cursor: pointer; border-radius: 6px; transition: background .15s; }
+        .eac-row:hover { background: rgba(14,165,233,0.05); }
+        .eac-row.eac-active { background: rgba(14,165,233,0.09); outline: 1.5px solid rgba(14,165,233,0.35); outline-offset: 2px; }
         .eac-area { display: flex; align-items: center; gap: 12px; }
         .eac-icon-wrap {
             width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
@@ -1146,7 +1148,7 @@
                 ? `<div class="eac-seg ${cls}" style="width:${pct.toFixed(2)}%"><span class="eac-seg-lbl">${pct >= THRESH ? fmt(val) : ''}</span></div>`
                 : '';
             return `
-            <div class="eac-row">
+            <div class="eac-row" data-rawname="${rawName}">
                 <div class="eac-area">
                     <div class="eac-icon-wrap" style="background:${cfg.bg};color:${cfg.color}">${cfg.icon}</div>
                     <span class="eac-name">${escapeHtml(label)}</span>
@@ -1169,6 +1171,10 @@
                 </div>
             </div>`;
         }).join('');
+        const _activeAreas = powerBIState.filters.areas || [];
+        container.querySelectorAll('.eac-row[data-rawname]').forEach(r => {
+            r.classList.toggle('eac-active', _activeAreas.includes(r.dataset.rawname));
+        });
         // Posicionar badges leyendo la posición real del segmento en el DOM
         setTimeout(() => {
             container.querySelectorAll('.eac-row').forEach(eacRow => {
@@ -1575,6 +1581,20 @@
             menu?.addEventListener('click', event => event.stopPropagation());
         });
         document.addEventListener('click', closeFilterMenus);
+
+        // Click en fila EAC → filtro de área (toggle)
+        const _eacCont = document.getElementById('eac-rows');
+        if (_eacCont) {
+            _eacCont.addEventListener('click', e => {
+                const row = e.target.closest('.eac-row[data-rawname]');
+                if (!row) return;
+                const rawName = row.dataset.rawname;
+                const current = powerBIState.filters.areas || [];
+                powerBIState.filters.areas = (current.length === 1 && current[0] === rawName) ? [] : [rawName];
+                populateFilterControls('areas');
+                renderPowerBIView();
+            });
+        }
 
         // Botón ✕ por filtro individual
         document.querySelectorAll('.filter-clear-one[data-clear-filter]').forEach(btn => {
