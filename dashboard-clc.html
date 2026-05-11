@@ -723,10 +723,10 @@
         .tendencia-body { position: relative; min-height: 320px; }
         .mekko-col { transition: opacity .18s; }
         #mekko-tooltip {
-            display: none; position: absolute; pointer-events: none;
+            display: none; position: fixed; pointer-events: none;
             background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
             padding: 10px 14px; box-shadow: 0 8px 24px rgba(30,58,95,0.13);
-            min-width: 185px; z-index: 100; font-family: Inter, sans-serif;
+            min-width: 185px; z-index: 9999; font-family: Inter, sans-serif;
         }
         .mekko-tip-title { font-weight: 700; color: #1e3a5f; margin-bottom: 7px; font-size: 0.78rem; }
         .mekko-tip-ppto { font-size: 0.7rem; color: #64748b; padding-bottom: 7px; margin-bottom: 7px; border-bottom: 1px solid #f1f5f9; display:flex; justify-content:space-between; }
@@ -2461,12 +2461,11 @@
                         <div class="mekko-tip-row"><span class="mekko-tip-dot" style="background:${C_COMP}"></span><span>Comprometido</span><span style="font-weight:700;color:${C_COMP}">${fmtVal(comp)}</span><span style="color:#94a3b8">${Math.round(pComp*100)}%</span></div>
                         <div class="mekko-tip-row"><span class="mekko-tip-dot" style="background:#94a3b8"></span><span>Disponible</span><span style="font-weight:700;color:#475569">${fmtVal(disp)}</span><span style="color:#94a3b8">${Math.round(pDisp*100)}%</span></div>`;
                     const cRect = col.getBoundingClientRect();
-                    const bRect = container.getBoundingClientRect();
-                    const tipW = 195, tipH = 130;
-                    let tx = cRect.left - bRect.left + cRect.width/2 - tipW/2;
-                    let ty = cRect.top - bRect.top - tipH - 10;
-                    if (ty < 4) ty = cRect.bottom - bRect.top + 6;
-                    tx = Math.max(4, Math.min(tx, bRect.width - tipW - 4));
+                    const tipW = 195, tipH = 135;
+                    let tx = cRect.left + cRect.width/2 - tipW/2;
+                    let ty = cRect.top - tipH - 10;
+                    if (ty < 8) ty = cRect.bottom + 8;
+                    tx = Math.max(8, Math.min(tx, window.innerWidth - tipW - 8));
                     tooltip.style.cssText = `display:block;left:${tx}px;top:${ty}px;`;
                 }
                 cols.forEach(c => { c.style.opacity = c === col ? '1' : '0.35'; });
