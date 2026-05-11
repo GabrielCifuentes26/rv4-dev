@@ -2806,16 +2806,6 @@
             if (label) applyChartFilter('meses', label, null);
         });
 
-        // ── Tabla → Área (tr-l1) o Segmento (tr-l2) ─────────────
-        document.getElementById('resumen-area-body').addEventListener('click', e => {
-            const row = e.target.closest('tr');
-            if (!row || row.classList.contains('total-row')) return;
-            if (row.classList.contains('tr-l1') && row.dataset.rawname) {
-                applyChartFilter('areas', row.dataset.rawname, row);
-            } else if (row.classList.contains('tr-l2') && row.dataset.rawseg) {
-                applyChartFilter('segmentos', row.dataset.rawseg, row);
-            }
-        });
     }
     // ── /Chart-click filters ─────────────────────────────────────
 
