@@ -1100,7 +1100,7 @@
         const projectKeys = projectsWithSap.map(project => SAP_PROJECT_KEYS[project.id]);
         const { data, error } = await client
             .from('v_project_sap_summary')
-            .select('project_key, presupuesto_sap, asignado, pct_asignado, updated_at')
+            .select('project_key, presupuesto_sap, asignado, pct_asignado, por_area, updated_at')
             .in('project_key', projectKeys);
 
         if (error || !Array.isArray(data) || data.length === 0) return false;
@@ -1113,6 +1113,7 @@
                 asignado:       row.asignado,
                 pct:            row.pct_asignado
             });
+            if (Array.isArray(row.por_area) && row.por_area.length) setSapAreasFromRows(project, row.por_area);
             if (row.updated_at) project.sapUpdatedAt = row.updated_at;
         });
 
