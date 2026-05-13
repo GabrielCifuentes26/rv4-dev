@@ -25,6 +25,26 @@ const PPTO_LABEL: Record<string, string> = {
   bse: 'Presupuesto ER',
 }
 
+// Alias para detectar qué proyecto menciona el mensaje
+const PROJECT_ALIASES: [string, string][] = [
+  ['bosques de jalapa', 'bdj'], ['bosques jalapa', 'bdj'], ['jalapa', 'bdj'], ['bdj', 'bdj'],
+  ['bosques de pinula', 'bdp'], ['bosques pinula', 'bdp'], ['pinula', 'bdp'], ['bdp', 'bdp'],
+  ['bosques de santa elena', 'bse'], ['bosques santa elena', 'bse'], ['bse', 'bse'],
+  ['condado la ceiba', 'clc'], ['la ceiba', 'clc'], ['ceiba', 'clc'], ['clc', 'clc'],
+  ['condado santa elena', 'cse'], ['cse', 'cse'],
+  ['hacienda la querencia', 'hlq'], ['la querencia', 'hlq'], ['querencia', 'hlq'], ['hlq', 'hlq'],
+  ['hacienda el sol', 'hsl'], ['el sol', 'hsl'], ['hacienda sol', 'hsl'], ['hsl', 'hsl'],
+  ['reserva del bosque', 'rdb'], ['reserva', 'rdb'], ['rdb', 'rdb'],
+]
+
+function detectProjectKey(message: string): string {
+  const lower = message.toLowerCase()
+  for (const [alias, key] of PROJECT_ALIASES) {
+    if (lower.includes(alias)) return key
+  }
+  return ''
+}
+
 function buildProjectContext(row: Record<string, unknown>): string {
   const datasets  = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
   const totales   = ((datasets.totales    as Record<string, number>[])?.[0]) ?? {}
@@ -43,7 +63,7 @@ function buildProjectContext(row: Record<string, unknown>): string {
     `    ${r[areaKey] ?? 'Área'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
   ).join('\n') || '    Sin datos'
 
-  // Etapas top 12 por asignado (todas para búsquedas por nombre)
+  // Etapas top 12 por asignado
   const etapaLines = [...porEtapa]
     .sort((a, b) => ((b['[AsignadoErequester]'] as number) ?? 0) - ((a['[AsignadoErequester]'] as number) ?? 0))
     .slice(0, 12)
@@ -51,12 +71,12 @@ function buildProjectContext(row: Record<string, unknown>): string {
       `    ${r[etapaKey] ?? 'Etapa'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}`
     ).join('\n') || '    Sin datos'
 
-  // Segmentos (CASAS, URBANIZACIÓN, CALLE DE ACCESO, FEE, etc.)
+  // Segmentos
   const segLines = porSegmento.map(r =>
     `    ${r[segKey] ?? 'Segmento'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
   ).join('\n') || '    Sin datos'
 
-  // Ejecución mensual — últimos 6 meses (excluye fila resumen con mes null)
+  // Ejecución mensual — últimos 6 meses
   const mesKey = porMes[0] ? findKey(porMes[0], 'MesA') : 'Calendario[MesA]'
   const mesLines = porMes
     .filter(r => r[mesKey] != null)
@@ -139,6 +159,31 @@ LO QUE AÚN NO TIENES (indícalo si preguntan):
 ✗ Desglose por fase (Fase 1, Fase 2) — pendiente de agregar
 ✗ Datos históricos anteriores a los sincronizados`
 
+async function callGroq(
+  systemPrompt: string,
+  history: { role: string; content: string }[],
+  message: string,
+  model: string,
+): Promise<Response> {
+  return fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...history.slice(-8),
+        { role: 'user', content: message },
+      ],
+      temperature: 0.15,
+      max_tokens: 800,
+    }),
+  })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -196,10 +241,12 @@ Indica que deben correr el script de sincronización para que los datos estén d
     } else {
       const projectList = rows.map(r => `${r.project_name} (${r.project_key})`).join(', ')
 
-      // Contexto completo para el proyecto activo, resumen para los demás
+      // Proyecto activo: explícito por URL o detectado en el mensaje
+      const activeKey = project_key || detectProjectKey(message)
+
       const allContexts = rows.map(r => {
-        const isActive = project_key && r.project_key === project_key
-        return (isActive || !project_key)
+        const isActive = activeKey && r.project_key === activeKey
+        return isActive
           ? buildProjectContext(r as Record<string, unknown>)
           : buildProjectSummary(r as Record<string, unknown>)
       }).join('\n---\n')
@@ -212,23 +259,11 @@ DATOS DE PROYECTOS:
 ${allContexts}`
     }
 
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...history.slice(-8),
-          { role: 'user', content: message },
-        ],
-        temperature: 0.15,
-        max_tokens: 800,
-      }),
-    })
+    // Llamar a Groq con fallback a modelo más pequeño si hay rate limit (429)
+    let groqRes = await callGroq(systemPrompt, history, message, 'llama-3.3-70b-versatile')
+    if (groqRes.status === 429) {
+      groqRes = await callGroq(systemPrompt, history, message, 'llama-3.1-8b-instant')
+    }
 
     const groqData = await groqRes.json()
     if (!groqRes.ok) {
