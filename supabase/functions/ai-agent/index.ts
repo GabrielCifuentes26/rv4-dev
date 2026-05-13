@@ -76,10 +76,10 @@ function buildProjectContext(row: Record<string, unknown>): string {
     `    ${r[areaKey] ?? 'Área'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
   ).join('\n') || '    Sin datos'
 
-  // Etapas — top 30 por asignado
+  // Etapas — top 20 por asignado
   const etapaLines = [...porEtapa]
     .sort((a, b) => ((b['[AsignadoErequester]'] as number) ?? 0) - ((a['[AsignadoErequester]'] as number) ?? 0))
-    .slice(0, 30)
+    .slice(0, 20)
     .map(r =>
       `    ${r[etapaKey] ?? 'Etapa'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}`
     ).join('\n') || '    Sin datos'
@@ -96,11 +96,11 @@ function buildProjectContext(row: Record<string, unknown>): string {
       ).join('\n')
     : '    Sin datos'
 
-  // Meses — últimos 12
+  // Meses — últimos 8
   const mesKey = porMes[0] ? findKey(porMes[0], 'MesA') : 'Calendario[MesA]'
   const mesLines = porMes
     .filter(r => r[mesKey] != null)
-    .slice(-12)
+    .slice(-8)
     .map(r =>
       `    ${r[mesKey]}: Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Comprometido ${fmt(r['[ComprometidoErequester]'] as number)}`
     ).join('\n') || '    Sin datos'
@@ -220,7 +220,12 @@ async function callGroq(
   history: { role: string; content: string }[],
   message: string,
   model: string,
+  maxHistory = 4,
 ): Promise<Response> {
+  // Limitar historial y truncar mensajes muy largos para evitar 413/400
+  const trimmedHistory = history
+    .slice(-maxHistory)
+    .map(m => ({ ...m, content: m.content.length > 600 ? m.content.slice(0, 600) + '…' : m.content }))
   return fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -231,11 +236,11 @@ async function callGroq(
       model,
       messages: [
         { role: 'system', content: systemPrompt },
-        ...history.slice(-8),
+        ...trimmedHistory,
         { role: 'user', content: message },
       ],
       temperature: 0.15,
-      max_tokens: 800,
+      max_tokens: 700,
     }),
   })
 }
@@ -374,24 +379,36 @@ DATOS DE PROYECTOS:
 ${allContexts}`
     }
 
-    // Llamar a Groq con fallback si hay rate limit (429)
+    // Llamar a Groq — fallback por modelo (429) y por tamaño (413/400)
     const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it']
     let groqRes: Response | null = null
     let groqData: Record<string, unknown> = {}
-    for (const model of models) {
-      groqRes = await callGroq(systemPrompt, history, message, model)
-      groqData = await groqRes.json() as Record<string, unknown>
-      if (groqRes.status !== 429) break
-      console.warn(`Rate limit en ${model}, intentando siguiente modelo...`)
+
+    outer: for (const model of models) {
+      for (const maxHist of [4, 2, 0]) {
+        groqRes  = await callGroq(systemPrompt, history, message, model, maxHist)
+        groqData = await groqRes.json() as Record<string, unknown>
+        if (groqRes.ok) break outer
+        if (groqRes.status === 429) {
+          console.warn(`Rate limit en ${model}, probando siguiente modelo...`)
+          break // saltar al siguiente modelo
+        }
+        if (groqRes.status === 413 || groqRes.status === 400) {
+          console.warn(`Error ${groqRes.status} en ${model} con historial=${maxHist}, reduciendo...`)
+          continue // reducir historial y reintentar mismo modelo
+        }
+        break // otro error — salir del bucle interno
+      }
+      if (groqRes?.ok) break
     }
 
     if (!groqRes!.ok) {
-      console.error('Groq error:', groqRes!.status, JSON.stringify(groqData))
+      console.error('Groq error final:', groqRes!.status, JSON.stringify(groqData))
     }
     const reply: string = (groqData.choices as { message: { content: string } }[])?.[0]?.message?.content
       ?? (groqRes!.status === 429
         ? 'El asistente está temporalmente no disponible por límite de uso. Intenta en unos minutos.'
-        : `Error del modelo (${groqRes!.status}). Intenta de nuevo.`)
+        : 'No se pudo obtener respuesta en este momento. Intenta de nuevo.')
 
     return new Response(JSON.stringify({ reply }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
