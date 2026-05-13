@@ -10,12 +10,10 @@ const fmt = (n: number | null | undefined) =>
 const fmtPct = (n: number | null | undefined) =>
   n != null ? `${(n * 100).toFixed(1)}%` : 'N/D'
 
-// Detecta dinámicamente la clave de etiqueta en un registro (la que no empieza con '[')
 function labelKey(record: Record<string, unknown>): string {
   return Object.keys(record).find(k => !k.startsWith('[')) ?? ''
 }
 
-// Busca una clave cuyo nombre contenga el fragmento dado (case-insensitive)
 function findKey(record: Record<string, unknown>, fragment: string): string {
   return Object.keys(record).find(k => k.toLowerCase().includes(fragment.toLowerCase())) ?? ''
 }
@@ -25,7 +23,6 @@ const PPTO_LABEL: Record<string, string> = {
   bse: 'Presupuesto ER',
 }
 
-// Metros cuadrados de construcción por proyecto (casas y urbanización)
 const PROJECT_M2: Record<string, { casas: number; urbanizacion: number; total: number }> = {
   bdj: { casas: 16566.48, urbanizacion: 36248.76, total: 52815.24 },
   bdp: { casas: 30715.06, urbanizacion: 23331.69, total: 54046.75 },
@@ -36,7 +33,6 @@ const PROJECT_M2: Record<string, { casas: number; urbanizacion: number; total: n
 }
 const USD_RATE = 7.8
 
-// Alias para detectar qué proyecto menciona el mensaje
 const PROJECT_ALIASES: [string, string][] = [
   ['bosques de jalapa', 'bdj'], ['bosques jalapa', 'bdj'], ['jalapa', 'bdj'], ['bdj', 'bdj'],
   ['bosques de pinula', 'bdp'], ['bosques pinula', 'bdp'], ['pinula', 'bdp'], ['bdp', 'bdp'],
@@ -56,41 +52,66 @@ function detectProjectKey(message: string): string {
   return ''
 }
 
+// ── EMBEDDING ─────────────────────────────────────────────────────────────
+// Modelo multilingual 384-dim: pequeño, rápido, excelente en español
+const HF_MODEL = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
+
+async function getEmbedding(text: string): Promise<number[] | null> {
+  const apiKey = Deno.env.get('HF_API_KEY')
+  if (!apiKey) return null
+  try {
+    const res = await fetch(
+      `https://api-inference.huggingface.co/pipeline/feature-extraction/${HF_MODEL}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
+        signal: AbortSignal.timeout(7000),
+      }
+    )
+    if (!res.ok) return null
+    const data = await res.json() as number[][]
+    // pipeline/feature-extraction returns [[f1, f2, ...]] for a single sentence
+    const emb = Array.isArray(data[0]) ? data[0] as number[] : data as unknown as number[]
+    return emb.length > 0 ? emb : null
+  } catch {
+    return null
+  }
+}
+
+// ── PROMPT BUILDERS ───────────────────────────────────────────────────────
 function buildProjectContext(row: Record<string, unknown>): string {
   const datasets   = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
   const totales    = ((datasets.totales     as Record<string, number>[])?.[0]) ?? {}
   const porArea:     Record<string, unknown>[] = (datasets.porArea      as Record<string, unknown>[]) ?? []
   const porEtapa:    Record<string, unknown>[] = (datasets.porEtapa     as Record<string, unknown>[]) ?? []
-  const porSegmento: Record<string, unknown>[] = (datasets.porSegmento  as Record<string, unknown>[]) ?? []
-  const porMes:      Record<string, unknown>[] = (datasets.porMesResumen as Record<string, unknown>[]) ?? []
   const porFase:     Record<string, unknown>[] = (datasets.porFase      as Record<string, unknown>[]) ?? []
+  const porMes:      Record<string, unknown>[] = (datasets.porMesResumen as Record<string, unknown>[]) ?? []
 
-  const areaKey  = porArea[0]     ? labelKey(porArea[0])     : ''
-  const etapaKey = porEtapa[0]    ? labelKey(porEtapa[0])    : ''
-  const segKey   = porSegmento[0] ? labelKey(porSegmento[0]) : ''
-  const faseKey  = porFase[0]     ? labelKey(porFase[0])     : ''
+  const areaKey  = porArea[0]  ? labelKey(porArea[0])  : ''
+  const etapaKey = porEtapa[0] ? labelKey(porEtapa[0]) : ''
+  const faseKey  = porFase[0]  ? labelKey(porFase[0])  : ''
   const pptoLabel = PPTO_LABEL[row.project_key as string] ?? 'Presupuesto SAP'
 
-  // Áreas
   const areaLines = porArea.map(r =>
     `    ${r[areaKey] ?? 'Área'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
   ).join('\n') || '    Sin datos'
 
-  // Todas las etapas ordenadas por presupuesto — formato compacto para no exceder tokens
   const etapaLines = [...porEtapa]
     .sort((a, b) => ((b['[PresupuestoErequester]'] as number) ?? 0) - ((a['[PresupuestoErequester]'] as number) ?? 0))
     .map(r =>
       `    ${r[etapaKey] ?? 'Etapa'}: ppto ${fmt(r['[PresupuestoErequester]'] as number)} ejec ${fmt(r['[EjecutadoErequester]'] as number)} disp ${fmt(r['[DisponibleErequester]'] as number)}`
     ).join('\n') || '    Sin datos'
 
-  // Fases completas
   const faseLines = porFase.length
     ? porFase.map(r =>
         `    Fase ${r[faseKey] ?? '?'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
       ).join('\n')
     : '    Sin datos'
 
-  // Meses — últimos 12
   const mesKey = porMes[0] ? findKey(porMes[0], 'MesA') : 'Calendario[MesA]'
   const mesLines = porMes
     .filter(r => r[mesKey] != null)
@@ -99,7 +120,6 @@ function buildProjectContext(row: Record<string, unknown>): string {
       `    ${r[mesKey]}: Ejec ${fmt(r['[EjecutadoErequester]'] as number)}, Asig ${fmt(r['[AsignadoErequester]'] as number)}, Comp ${fmt(r['[ComprometidoErequester]'] as number)}`
     ).join('\n') || '    Sin datos'
 
-  // Costo por m² (casas y urbanización) — solo costo planificado (presupuesto / m²)
   const m2 = PROJECT_M2[row.project_key as string]
   let m2Lines = '    Sin datos de m²'
   if (m2) {
@@ -127,14 +147,13 @@ ${faseLines}
   Áreas:
 ${areaLines}
 
-  Top 10 etapas:
+  Etapas (todas, ordenadas por presupuesto):
 ${etapaLines}
 
-  Últimos 5 meses:
+  Últimos meses:
 ${mesLines}`
 }
 
-// Resumen compacto (una línea) para proyectos no activos — mantiene el prompt pequeño
 function buildProjectSummary(row: Record<string, unknown>): string {
   const datasets  = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
   const totales   = ((datasets.totales as Record<string, number>[])?.[0]) ?? {}
@@ -208,7 +227,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Verificar sesión
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
@@ -227,12 +245,53 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Leer TODOS los proyectos disponibles
+    // Solo snapshots actuales (is_current = true)
     const { data: rows, error } = await admin
       .from('powerbi_resumen_cache')
       .select('payload, project_key, project_name, mes_a, updated_at')
+      .eq('is_current', true)
       .order('project_name', { ascending: true })
 
+    const activeKey = project_key || detectProjectKey(message)
+
+    // ── SEMANTIC CACHE LOOKUP ─────────────────────────────────────
+    // Clave de validez: mes_a del proyecto activo (o el más reciente si es global)
+    let cacheValidMesA = ''
+    if (rows && rows.length > 0) {
+      cacheValidMesA = activeKey
+        ? (rows.find(r => r.project_key === activeKey)?.mes_a ?? '')
+        : rows.reduce((max, r) => (r.mes_a > max ? r.mes_a : max), '')
+    }
+
+    // Calcular embedding en paralelo con la lectura de datos
+    let embedding: number[] | null = null
+    if (rows && rows.length > 0 && cacheValidMesA) {
+      embedding = await getEmbedding(message)
+
+      if (embedding) {
+        const { data: hits } = await admin.rpc('find_similar_question', {
+          query_embedding: embedding,
+          query_project_key: activeKey || null,
+          similarity_threshold: 0.88,
+          match_count: 1,
+        })
+
+        if (hits?.length && hits[0].mes_a === cacheValidMesA) {
+          // Cache HIT — actualizar stats sin bloquear la respuesta
+          admin.from('qa_cache')
+            .update({ hit_count: hits[0].hit_count + 1, last_used_at: new Date().toISOString() })
+            .eq('id', hits[0].id)
+            .then(() => {})
+
+          console.log(`Cache HIT (sim=${hits[0].similarity?.toFixed(3)}): "${hits[0].question}"`)
+          return new Response(JSON.stringify({ reply: hits[0].answer }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      }
+    }
+
+    // ── BUILD SYSTEM PROMPT ───────────────────────────────────────
     let systemPrompt: string
 
     if (error || !rows || rows.length === 0) {
@@ -243,9 +302,6 @@ Indica que deben correr el script de sincronización para que los datos estén d
     } else {
       const projectList = rows.map(r => `${r.project_name} (${r.project_key})`).join(', ')
 
-      // Proyecto activo: explícito por URL o detectado en el mensaje
-      const activeKey = project_key || detectProjectKey(message)
-
       const allContexts = rows.map(r => {
         const isActive = activeKey && r.project_key === activeKey
         return isActive
@@ -253,13 +309,11 @@ Indica que deben correr el script de sincronización para que los datos estén d
           : buildProjectSummary(r as Record<string, unknown>)
       }).join('\n---\n')
 
-      // Fecha de última sincronización (la más reciente entre todos los proyectos)
       const lastSync = rows.reduce((latest, r) => {
         const d = String(r.mes_a ?? '')
         return d > latest ? d : latest
       }, '')
 
-      // Pre-calcular totales globales para evitar que el agente sume incorrectamente
       const globalTotals = rows.reduce((acc, r) => {
         const ds = ((r.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
         const t  = ((ds.totales as Record<string, number>[])?.[0]) ?? {}
@@ -270,7 +324,6 @@ Indica que deben correr el script de sincronización para que los datos estén d
         acc.disponible+= (t['[DisponibleErequester]']   as number) ?? 0
         acc.comprometido += (t['[ComprometidoErequester]'] as number) ?? 0
         acc.rdi       += (t['[RdiTotal]']               as number) ?? 0
-        // Sumar desglose por área globalmente
         for (const aRow of porArea) {
           const aKey  = labelKey(aRow)
           const aName = String(aRow[aKey] ?? '').toLowerCase()
@@ -332,7 +385,7 @@ DATOS DE PROYECTOS:
 ${allContexts}`
     }
 
-    // Llamar a Groq — un intento por modelo, fallback en error
+    // ── CALL GROQ ────────────────────────────────────────────────
     const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it']
     let groqRes: Response | null = null
     let groqData: Record<string, unknown> = {}
@@ -347,10 +400,29 @@ ${allContexts}`
     if (!groqRes!.ok) {
       console.error('Groq error final:', groqRes!.status, JSON.stringify(groqData))
     }
+
     const reply: string = (groqData.choices as { message: { content: string } }[])?.[0]?.message?.content
       ?? (groqRes!.status === 429
         ? 'El asistente está temporalmente no disponible por límite de uso. Intenta en unos minutos.'
         : 'No se pudo obtener respuesta en este momento. Intenta de nuevo.')
+
+    // ── CACHE STORE (fire and forget) ───────────────────────────
+    // Solo guardar respuestas válidas cuando hay embedding y mes_a
+    if (
+      embedding &&
+      cacheValidMesA &&
+      reply &&
+      !reply.startsWith('El asistente') &&
+      !reply.startsWith('No se pudo')
+    ) {
+      admin.from('qa_cache').insert({
+        project_key: activeKey || null,
+        question: message,
+        embedding,
+        answer: reply,
+        mes_a: cacheValidMesA,
+      }).then(() => {}).catch((e: unknown) => console.warn('Cache store error:', e))
+    }
 
     return new Response(JSON.stringify({ reply }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

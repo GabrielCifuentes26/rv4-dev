@@ -158,6 +158,7 @@ function Publish-SupabaseResumen {
             project_key = $ProjectKey
             project_name = $ProjectName
             mes_a = $MesA
+            is_current = $true
             generated_at = $Payload.metadata.generatedAt
             workspace_id = $WorkspaceId
             report_id = $ReportId
@@ -171,17 +172,19 @@ function Publish-SupabaseResumen {
     $headers = @{
         apikey        = $SupabaseServiceKey
         Authorization = "Bearer $SupabaseServiceKey"
+        "Content-Type" = "application/json; charset=utf-8"
     }
 
-    # DELETE existing row first to guarantee clean replacement
-    $deleteUri = "$SupabaseUrl/rest/v1/powerbi_resumen_cache?project_key=eq.$ProjectKey"
-    Invoke-RestMethod -Uri $deleteUri -Method Delete -Headers $headers | Out-Null
+    # Mark all previous snapshots for this project as not current (preserva históricos)
+    $patchUri  = "$SupabaseUrl/rest/v1/powerbi_resumen_cache?project_key=eq.$ProjectKey&is_current=eq.true"
+    $patchBody = [System.Text.Encoding]::UTF8.GetBytes('{"is_current":false}')
+    Invoke-RestMethod -Uri $patchUri -Method Patch -Headers $headers -Body $patchBody | Out-Null
 
-    # INSERT fresh row
-    $insertHeaders = $headers + @{ Prefer = "return=minimal" }
-    $body = $row | ConvertTo-Json -Depth 100 -Compress
+    # UPSERT el snapshot actual — inserta si (project_key, mes_a) no existe, actualiza si ya existe
+    $upsertHeaders = $headers + @{ Prefer = "resolution=merge-duplicates,return=minimal" }
+    $body      = $row | ConvertTo-Json -Depth 100 -Compress
     $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($body)
-    Invoke-RestMethod -Uri "$SupabaseUrl/rest/v1/powerbi_resumen_cache" -Method Post -Headers $insertHeaders -ContentType "application/json; charset=utf-8" -Body $bodyBytes | Out-Null
+    Invoke-RestMethod -Uri "$SupabaseUrl/rest/v1/powerbi_resumen_cache" -Method Post -Headers $upsertHeaders -ContentType "application/json; charset=utf-8" -Body $bodyBytes | Out-Null
 }
 
 $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\..")
