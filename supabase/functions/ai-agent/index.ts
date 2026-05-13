@@ -17,22 +17,22 @@ function buildProjectContext(row: Record<string, unknown>): string {
   const porEtapa: Record<string, number>[] = (datasets.porEtapa as Record<string, number>[]) ?? []
 
   const areaLines = porArea.map(r =>
-    `    ${r['Rubros[Area]'] ?? 'Área'}: Ejecutado ${fmt(r.EjecutadoErequester)}, Asignado ${fmt(r.AsignadoErequester)}, Disponible ${fmt(r.DisponibleErequester)}`
+    `    ${r['Rubros[Area]'] ?? 'Área'}: Ejecutado ${fmt(r['[EjecutadoErequester]'])}, Asignado ${fmt(r['[AsignadoErequester]'])}, Disponible ${fmt(r['[DisponibleErequester]'])}`
   ).join('\n') || '    Sin datos'
 
   const etapaLines = [...porEtapa]
-    .sort((a, b) => (b.AsignadoErequester ?? 0) - (a.AsignadoErequester ?? 0))
+    .sort((a, b) => ((b['[AsignadoErequester]'] as number) ?? 0) - ((a['[AsignadoErequester]'] as number) ?? 0))
     .slice(0, 8)
     .map(r =>
-      `    ${r['Rubros[Etapa]'] ?? 'Etapa'}: Ppto ${fmt(r.PresupuestoErequester)}, Ejecutado ${fmt(r.EjecutadoErequester)}, Asignado ${fmt(r.AsignadoErequester)}`
+      `    ${r['Rubros[Etapa]'] ?? 'Etapa'}: Ppto ${fmt(r['[PresupuestoErequester]'])}, Ejecutado ${fmt(r['[EjecutadoErequester]'])}, Asignado ${fmt(r['[AsignadoErequester]'])}`
     ).join('\n') || '    Sin datos'
 
   return `
   ### ${row.project_name} (${row.project_key}) — Mes: ${row.mes_a}
-  RDI: ${fmt(totales.RdiTotal)} | Presupuesto ER: ${fmt(totales.PresupuestoErequester)}
-  Ejecutado: ${fmt(totales.EjecutadoErequester)} | Comprometido: ${fmt(totales.ComprometidoErequester)}
-  Asignado: ${fmt(totales.AsignadoErequester)} | Disponible: ${fmt(totales.DisponibleErequester)}
-  % Asignado: ${fmtPct(totales.PorcentajeAsignado)} | % Disponible: ${fmtPct(totales.PorcentajeDisponible)}
+  RDI: ${fmt(totales['[RdiTotal]'])} | Presupuesto ER: ${fmt(totales['[PresupuestoErequester]'])}
+  Ejecutado: ${fmt(totales['[EjecutadoErequester]'])} | Comprometido: ${fmt(totales['[ComprometidoErequester]'])}
+  Asignado: ${fmt(totales['[AsignadoErequester]'])} | Disponible: ${fmt(totales['[DisponibleErequester]'])}
+  % Asignado: ${fmtPct(totales['[PorcentajeAsignado]'])} | % Disponible: ${fmtPct(totales['[PorcentajeDisponible]'])}
   Por área:
 ${areaLines}
   Top etapas:
