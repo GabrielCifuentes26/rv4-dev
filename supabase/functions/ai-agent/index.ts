@@ -221,11 +221,32 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Leer TODOS los proyectos disponibles
+    // Rate limiting por usuario: máx 25 preguntas por día
+    const DAILY_LIMIT = 25
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+    const today = new Date().toISOString().split('T')[0]
+    const { data: usageRow } = await admin
+      .from('ai_agent_usage')
+      .select('requests')
+      .eq('user_id', user.id)
+      .eq('usage_date', today)
+      .single()
+    const usedToday = usageRow?.requests ?? 0
+    if (usedToday >= DAILY_LIMIT) {
+      return new Response(JSON.stringify({
+        reply: `Has alcanzado el límite de ${DAILY_LIMIT} preguntas por hoy. El límite se reinicia a medianoche (hora UTC). Si necesitas más consultas, contacta al administrador.`
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    // Incrementar contador
+    await admin.from('ai_agent_usage').upsert(
+      { user_id: user.id, usage_date: today, requests: usedToday + 1 },
+      { onConflict: 'user_id,usage_date' }
+    )
+
+    // Leer TODOS los proyectos disponibles
     const { data: rows, error } = await admin
       .from('powerbi_resumen_cache')
       .select('payload, project_key, project_name, mes_a, updated_at')
