@@ -170,6 +170,41 @@
   const sendBtn  = document.getElementById('cp-send');
   let history    = [];
 
+  const SESSION_KEY = 'cp_chat_session';
+
+  function getCurrentUserId() {
+    try {
+      const s = JSON.parse(localStorage.getItem('sb-iipgrojliqeyycvgnkrc-auth-token') || 'null');
+      return s?.user?.id ?? null;
+    } catch { return null; }
+  }
+
+  function saveSession() {
+    const userId = getCurrentUserId();
+    if (!userId) return;
+    const msgs = Array.from(messages.querySelectorAll('.cp-msg')).map(el => ({
+      role: el.classList.contains('user') ? 'user' : 'assistant',
+      text: el.querySelector('.cp-bubble')?.textContent ?? ''
+    }));
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ userId, history, msgs }));
+  }
+
+  function restoreSession() {
+    try {
+      const userId = getCurrentUserId();
+      if (!userId) return;
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data.userId !== userId) { sessionStorage.removeItem(SESSION_KEY); return; }
+      history = data.history || [];
+      if (data.msgs && data.msgs.length > 1) {
+        messages.innerHTML = '';
+        data.msgs.forEach(m => addMsg(m.role, m.text));
+      }
+    } catch { /* ignorar */ }
+  }
+
   fab.addEventListener('click', () => panel.classList.add('open'));
   closeBtn.addEventListener('click', () => panel.classList.remove('open'));
 
@@ -225,6 +260,7 @@
       history.push({ role: 'user', content: text });
       history.push({ role: 'assistant', content: reply });
       if (history.length > 12) history = history.slice(-12);
+      saveSession();
 
     } catch {
       typing.remove();
@@ -239,4 +275,7 @@
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   });
+
+  // Restaurar conversación de la sesión activa
+  restoreSession();
 })();
