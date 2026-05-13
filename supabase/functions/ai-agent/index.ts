@@ -15,14 +15,20 @@ function labelKey(record: Record<string, unknown>): string {
   return Object.keys(record).find(k => !k.startsWith('[')) ?? ''
 }
 
+const PPTO_LABEL: Record<string, string> = {
+  bdp: 'PPTO ER',
+  bse: 'Presupuesto ER',
+}
+
 function buildProjectContext(row: Record<string, unknown>): string {
   const datasets = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
   const totales = ((datasets.totales as Record<string, number>[])?.[0]) ?? {}
   const porArea: Record<string, unknown>[] = (datasets.porArea as Record<string, unknown>[]) ?? []
   const porEtapa: Record<string, unknown>[] = (datasets.porEtapa as Record<string, unknown>[]) ?? []
 
-  const areaKey  = porArea[0]  ? labelKey(porArea[0])  : ''
-  const etapaKey = porEtapa[0] ? labelKey(porEtapa[0]) : ''
+  const areaKey   = porArea[0]  ? labelKey(porArea[0])  : ''
+  const etapaKey  = porEtapa[0] ? labelKey(porEtapa[0]) : ''
+  const pptoLabel = PPTO_LABEL[row.project_key as string] ?? 'Presupuesto SAP'
 
   const areaLines = porArea.map(r =>
     `    ${r[areaKey] ?? 'Área'}: Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}`
@@ -32,12 +38,12 @@ function buildProjectContext(row: Record<string, unknown>): string {
     .sort((a, b) => ((b['[AsignadoErequester]'] as number) ?? 0) - ((a['[AsignadoErequester]'] as number) ?? 0))
     .slice(0, 8)
     .map(r =>
-      `    ${r[etapaKey] ?? 'Etapa'}: SAP ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}`
+      `    ${r[etapaKey] ?? 'Etapa'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}`
     ).join('\n') || '    Sin datos'
 
   return `
   ### ${row.project_name} (${row.project_key}) — Mes: ${row.mes_a}
-  Presupuesto SAP: ${fmt(totales['[PresupuestoErequester]'])} | RDI: ${fmt(totales['[RdiTotal]'])}
+  ${pptoLabel}: ${fmt(totales['[PresupuestoErequester]'])} | RDI: ${fmt(totales['[RdiTotal]'])}
   Ejecutado: ${fmt(totales['[EjecutadoErequester]'])} | Comprometido: ${fmt(totales['[ComprometidoErequester]'])}
   Asignado: ${fmt(totales['[AsignadoErequester]'])} | Disponible: ${fmt(totales['[DisponibleErequester]'])}
   % Asignado: ${fmtPct(totales['[PorcentajeAsignado]'])} | % Disponible: ${fmtPct(totales['[PorcentajeDisponible]'])}
