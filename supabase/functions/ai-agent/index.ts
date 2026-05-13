@@ -43,10 +43,10 @@ function buildProjectContext(row: Record<string, unknown>): string {
     `    ${r[areaKey] ?? 'Área'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
   ).join('\n') || '    Sin datos'
 
-  // Etapas top 8 por asignado
+  // Etapas top 12 por asignado (todas para búsquedas por nombre)
   const etapaLines = [...porEtapa]
     .sort((a, b) => ((b['[AsignadoErequester]'] as number) ?? 0) - ((a['[AsignadoErequester]'] as number) ?? 0))
-    .slice(0, 8)
+    .slice(0, 12)
     .map(r =>
       `    ${r[etapaKey] ?? 'Etapa'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}`
     ).join('\n') || '    Sin datos'
@@ -56,10 +56,11 @@ function buildProjectContext(row: Record<string, unknown>): string {
     `    ${r[segKey] ?? 'Segmento'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
   ).join('\n') || '    Sin datos'
 
-  // Ejecución mensual (excluye fila resumen con mes null)
+  // Ejecución mensual — últimos 6 meses (excluye fila resumen con mes null)
   const mesKey = porMes[0] ? findKey(porMes[0], 'MesA') : 'Calendario[MesA]'
   const mesLines = porMes
     .filter(r => r[mesKey] != null)
+    .slice(-6)
     .map(r =>
       `    ${r[mesKey]}: Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Comprometido ${fmt(r['[ComprometidoErequester]'] as number)}`
     ).join('\n') || '    Sin datos'
@@ -198,7 +199,7 @@ Indica que deben correr el script de sincronización para que los datos estén d
       // Contexto completo para el proyecto activo, resumen para los demás
       const allContexts = rows.map(r => {
         const isActive = project_key && r.project_key === project_key
-        return isActive
+        return (isActive || !project_key)
           ? buildProjectContext(r as Record<string, unknown>)
           : buildProjectSummary(r as Record<string, unknown>)
       }).join('\n---\n')
