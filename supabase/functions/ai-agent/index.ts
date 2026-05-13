@@ -25,6 +25,17 @@ const PPTO_LABEL: Record<string, string> = {
   bse: 'Presupuesto ER',
 }
 
+// Metros cuadrados de construcción por proyecto (casas y urbanización)
+const PROJECT_M2: Record<string, { casas: number; urbanizacion: number; total: number }> = {
+  bdj: { casas: 16566.48, urbanizacion: 36248.76, total: 52815.24 },
+  bdp: { casas: 30715.06, urbanizacion: 23331.69, total: 54046.75 },
+  bse: { casas: 41272.94, urbanizacion: 27442.78, total: 68715.72 },
+  cse: { casas: 42630.21, urbanizacion: 19427.66, total: 62057.87 },
+  hlq: { casas: 10388.90, urbanizacion: 7282.77,  total: 17671.67 },
+  rdb: { casas: 29940.56, urbanizacion: 33784.09, total: 63724.65 },
+}
+const USD_RATE = 7.8
+
 // Alias para detectar qué proyecto menciona el mensaje
 const PROJECT_ALIASES: [string, string][] = [
   ['bosques de jalapa', 'bdj'], ['bosques jalapa', 'bdj'], ['jalapa', 'bdj'], ['bdj', 'bdj'],
@@ -46,29 +57,30 @@ function detectProjectKey(message: string): string {
 }
 
 function buildProjectContext(row: Record<string, unknown>): string {
-  const datasets  = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
-  const totales   = ((datasets.totales    as Record<string, number>[])?.[0]) ?? {}
-  const porArea:     Record<string, unknown>[] = (datasets.porArea     as Record<string, unknown>[]) ?? []
-  const porEtapa:    Record<string, unknown>[] = (datasets.porEtapa    as Record<string, unknown>[]) ?? []
-  const porSegmento: Record<string, unknown>[] = (datasets.porSegmento as Record<string, unknown>[]) ?? []
+  const datasets   = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
+  const totales    = ((datasets.totales     as Record<string, number>[])?.[0]) ?? {}
+  const porArea:     Record<string, unknown>[] = (datasets.porArea      as Record<string, unknown>[]) ?? []
+  const porEtapa:    Record<string, unknown>[] = (datasets.porEtapa     as Record<string, unknown>[]) ?? []
+  const porSegmento: Record<string, unknown>[] = (datasets.porSegmento  as Record<string, unknown>[]) ?? []
   const porMes:      Record<string, unknown>[] = (datasets.porMesResumen as Record<string, unknown>[]) ?? []
+  const porFase:     Record<string, unknown>[] = (datasets.porFase      as Record<string, unknown>[]) ?? []
 
-  const areaKey     = porArea[0]     ? labelKey(porArea[0])     : ''
-  const etapaKey    = porEtapa[0]    ? labelKey(porEtapa[0])    : ''
-  const segKey      = porSegmento[0] ? labelKey(porSegmento[0]) : ''
-  const pptoLabel   = PPTO_LABEL[row.project_key as string] ?? 'Presupuesto SAP'
+  const areaKey  = porArea[0]     ? labelKey(porArea[0])     : ''
+  const etapaKey = porEtapa[0]    ? labelKey(porEtapa[0])    : ''
+  const segKey   = porSegmento[0] ? labelKey(porSegmento[0]) : ''
+  const faseKey  = porFase[0]     ? labelKey(porFase[0])     : ''
+  const pptoLabel = PPTO_LABEL[row.project_key as string] ?? 'Presupuesto SAP'
 
   // Áreas
   const areaLines = porArea.map(r =>
     `    ${r[areaKey] ?? 'Área'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
   ).join('\n') || '    Sin datos'
 
-  // Etapas top 12 por asignado
+  // Todas las etapas ordenadas por asignado
   const etapaLines = [...porEtapa]
     .sort((a, b) => ((b['[AsignadoErequester]'] as number) ?? 0) - ((a['[AsignadoErequester]'] as number) ?? 0))
-    .slice(0, 12)
     .map(r =>
-      `    ${r[etapaKey] ?? 'Etapa'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}`
+      `    ${r[etapaKey] ?? 'Etapa'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}`
     ).join('\n') || '    Sin datos'
 
   // Segmentos
@@ -76,14 +88,39 @@ function buildProjectContext(row: Record<string, unknown>): string {
     `    ${r[segKey] ?? 'Segmento'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
   ).join('\n') || '    Sin datos'
 
-  // Ejecución mensual — últimos 6 meses
+  // Fases completas
+  const faseLines = porFase.length
+    ? porFase.map(r =>
+        `    Fase ${r[faseKey] ?? '?'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
+      ).join('\n')
+    : '    Sin datos'
+
+  // Todos los meses disponibles
   const mesKey = porMes[0] ? findKey(porMes[0], 'MesA') : 'Calendario[MesA]'
   const mesLines = porMes
     .filter(r => r[mesKey] != null)
-    .slice(-6)
     .map(r =>
       `    ${r[mesKey]}: Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Comprometido ${fmt(r['[ComprometidoErequester]'] as number)}`
     ).join('\n') || '    Sin datos'
+
+  // Costo por m² (casas y urbanización)
+  const m2 = PROJECT_M2[row.project_key as string]
+  let m2Lines = '    Sin datos de m²'
+  if (m2) {
+    const costosCasas = porArea.find(r => String(r[areaKey] ?? '').toLowerCase().includes('construcc') || String(r[areaKey] ?? '').toLowerCase().includes('casas'))
+    const costosUrba  = porArea.find(r => String(r[areaKey] ?? '').toLowerCase().includes('urbaniz'))
+    const presupCasas = (costosCasas?.['[PresupuestoErequester]'] as number) ?? 0
+    const presupUrba  = (costosUrba?.['[PresupuestoErequester]'] as number) ?? 0
+    const ejCasas     = (costosCasas?.['[EjecutadoErequester]'] as number) ?? 0
+    const ejUrba      = (costosUrba?.['[EjecutadoErequester]'] as number) ?? 0
+    const ppM2Casas   = m2.casas > 0 ? Math.round(presupCasas / m2.casas) : 0
+    const ppM2Urba    = m2.urbanizacion > 0 ? Math.round(presupUrba / m2.urbanizacion) : 0
+    const ejM2Casas   = m2.casas > 0 ? Math.round(ejCasas / m2.casas) : 0
+    const ejM2Urba    = m2.urbanizacion > 0 ? Math.round(ejUrba / m2.urbanizacion) : 0
+    m2Lines = `    Casas: ${m2.casas.toLocaleString()} m² | Ppto Q${ppM2Casas.toLocaleString()}/m² ($${Math.round(ppM2Casas/USD_RATE).toLocaleString()}/m²) | Ejecutado Q${ejM2Casas.toLocaleString()}/m²
+    Urbanización: ${m2.urbanizacion.toLocaleString()} m² | Ppto Q${ppM2Urba.toLocaleString()}/m² ($${Math.round(ppM2Urba/USD_RATE).toLocaleString()}/m²) | Ejecutado Q${ejM2Urba.toLocaleString()}/m²
+    Total proyecto: ${m2.total.toLocaleString()} m²`
+  }
 
   return `
   ### ${row.project_name} (${row.project_key}) — Datos al: ${row.mes_a}
@@ -92,16 +129,22 @@ function buildProjectContext(row: Record<string, unknown>): string {
   Asignado: ${fmt(totales['[AsignadoErequester]'])} | Disponible: ${fmt(totales['[DisponibleErequester]'])}
   % Asignado: ${fmtPct(totales['[PorcentajeAsignado]'])} | % Disponible: ${fmtPct(totales['[PorcentajeDisponible]'])}
 
-  Por área (CONSTRUCCIÓN, URBANIZACIÓN, etc.):
+  Costo por m² de construcción:
+${m2Lines}
+
+  Por fase:
+${faseLines}
+
+  Por área:
 ${areaLines}
 
-  Por segmento (CASAS, CALLE DE ACCESO, FEE, IMPREVISTOS, etc.):
+  Por segmento:
 ${segLines}
 
-  Top etapas por monto asignado:
+  Todas las etapas (ordenadas por monto asignado):
 ${etapaLines}
 
-  Ejecución por mes:
+  Ejecución mensual completa:
 ${mesLines}`
 }
 
@@ -146,17 +189,18 @@ SINÓNIMOS Y TÉRMINOS QUE DEBES RECONOCER:
 - "rdb / reserva / bosque reserva" → Reserva del Bosque (rdb)
 
 LO QUE PUEDES RESPONDER:
-✓ Presupuesto total y por área/segmento/etapa de cualquier proyecto
-✓ Monto ejecutado total y por área/segmento/etapa
+✓ Presupuesto total y por área/segmento/etapa/fase de cualquier proyecto
+✓ Monto ejecutado total y por área/segmento/etapa/fase
 ✓ Monto disponible y comprometido
 ✓ Porcentaje de avance (% asignado y % disponible)
-✓ Ejecución mes a mes (qué se ejecutó en enero, febrero, etc.)
+✓ Ejecución mes a mes — histórico completo disponible
+✓ Desglose por Fase (Fase 01, Fase 02, Fase 03, etc.)
+✓ Costo por metro cuadrado (m²) de Casas y Urbanización — en Q y en USD
+✓ Metros cuadrados totales de construcción por proyecto
 ✓ Comparación entre proyectos
-✓ Cuál proyecto tiene más/menos ejecución, más/menos disponible
+✓ Cuál proyecto tiene más/menos ejecución, más/menos disponible, menor/mayor costo por m²
 
 LO QUE AÚN NO TIENES (indícalo si preguntan):
-✗ Costos por metro cuadrado (m²) — pendiente de agregar
-✗ Desglose por fase (Fase 1, Fase 2) — pendiente de agregar
 ✗ Datos históricos anteriores a los sincronizados`
 
 async function callGroq(
