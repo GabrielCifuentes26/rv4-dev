@@ -10,9 +10,14 @@ const fmt = (n: number | null | undefined) =>
 const fmtPct = (n: number | null | undefined) =>
   n != null ? `${(n * 100).toFixed(1)}%` : 'N/D'
 
-// Detecta dinámicamente la clave de etiqueta (la que no empieza con '[')
+// Detecta dinámicamente la clave de etiqueta en un registro (la que no empieza con '[')
 function labelKey(record: Record<string, unknown>): string {
   return Object.keys(record).find(k => !k.startsWith('[')) ?? ''
+}
+
+// Busca una clave cuyo nombre contenga el fragmento dado (case-insensitive)
+function findKey(record: Record<string, unknown>, fragment: string): string {
+  return Object.keys(record).find(k => k.toLowerCase().includes(fragment.toLowerCase())) ?? ''
 }
 
 const PPTO_LABEL: Record<string, string> = {
@@ -21,19 +26,24 @@ const PPTO_LABEL: Record<string, string> = {
 }
 
 function buildProjectContext(row: Record<string, unknown>): string {
-  const datasets = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
-  const totales = ((datasets.totales as Record<string, number>[])?.[0]) ?? {}
-  const porArea: Record<string, unknown>[] = (datasets.porArea as Record<string, unknown>[]) ?? []
-  const porEtapa: Record<string, unknown>[] = (datasets.porEtapa as Record<string, unknown>[]) ?? []
+  const datasets  = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
+  const totales   = ((datasets.totales    as Record<string, number>[])?.[0]) ?? {}
+  const porArea:     Record<string, unknown>[] = (datasets.porArea     as Record<string, unknown>[]) ?? []
+  const porEtapa:    Record<string, unknown>[] = (datasets.porEtapa    as Record<string, unknown>[]) ?? []
+  const porSegmento: Record<string, unknown>[] = (datasets.porSegmento as Record<string, unknown>[]) ?? []
+  const porMes:      Record<string, unknown>[] = (datasets.porMesResumen as Record<string, unknown>[]) ?? []
 
-  const areaKey   = porArea[0]  ? labelKey(porArea[0])  : ''
-  const etapaKey  = porEtapa[0] ? labelKey(porEtapa[0]) : ''
-  const pptoLabel = PPTO_LABEL[row.project_key as string] ?? 'Presupuesto SAP'
+  const areaKey     = porArea[0]     ? labelKey(porArea[0])     : ''
+  const etapaKey    = porEtapa[0]    ? labelKey(porEtapa[0])    : ''
+  const segKey      = porSegmento[0] ? labelKey(porSegmento[0]) : ''
+  const pptoLabel   = PPTO_LABEL[row.project_key as string] ?? 'Presupuesto SAP'
 
+  // Áreas
   const areaLines = porArea.map(r =>
-    `    ${r[areaKey] ?? 'Área'}: Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}`
+    `    ${r[areaKey] ?? 'Área'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
   ).join('\n') || '    Sin datos'
 
+  // Etapas top 8 por asignado
   const etapaLines = [...porEtapa]
     .sort((a, b) => ((b['[AsignadoErequester]'] as number) ?? 0) - ((a['[AsignadoErequester]'] as number) ?? 0))
     .slice(0, 8)
@@ -41,17 +51,83 @@ function buildProjectContext(row: Record<string, unknown>): string {
       `    ${r[etapaKey] ?? 'Etapa'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}`
     ).join('\n') || '    Sin datos'
 
+  // Segmentos (CASAS, URBANIZACIÓN, CALLE DE ACCESO, FEE, etc.)
+  const segLines = porSegmento.map(r =>
+    `    ${r[segKey] ?? 'Segmento'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
+  ).join('\n') || '    Sin datos'
+
+  // Ejecución mensual (excluye fila resumen con mes null)
+  const mesKey = porMes[0] ? findKey(porMes[0], 'MesA') : 'Calendario[MesA]'
+  const mesLines = porMes
+    .filter(r => r[mesKey] != null)
+    .map(r =>
+      `    ${r[mesKey]}: Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Comprometido ${fmt(r['[ComprometidoErequester]'] as number)}`
+    ).join('\n') || '    Sin datos'
+
   return `
-  ### ${row.project_name} (${row.project_key}) — Mes: ${row.mes_a}
+  ### ${row.project_name} (${row.project_key}) — Datos al: ${row.mes_a}
   ${pptoLabel}: ${fmt(totales['[PresupuestoErequester]'])} | RDI: ${fmt(totales['[RdiTotal]'])}
   Ejecutado: ${fmt(totales['[EjecutadoErequester]'])} | Comprometido: ${fmt(totales['[ComprometidoErequester]'])}
   Asignado: ${fmt(totales['[AsignadoErequester]'])} | Disponible: ${fmt(totales['[DisponibleErequester]'])}
   % Asignado: ${fmtPct(totales['[PorcentajeAsignado]'])} | % Disponible: ${fmtPct(totales['[PorcentajeDisponible]'])}
-  Por área:
+
+  Por área (CONSTRUCCIÓN, URBANIZACIÓN, etc.):
 ${areaLines}
-  Top etapas:
-${etapaLines}`
+
+  Por segmento (CASAS, CALLE DE ACCESO, FEE, IMPREVISTOS, etc.):
+${segLines}
+
+  Top etapas por monto asignado:
+${etapaLines}
+
+  Ejecución por mes:
+${mesLines}`
 }
+
+const SYSTEM_BASE = `Eres un asistente financiero experto del sistema Costos & Presupuestos de RV4.
+Tu trabajo es responder preguntas sobre presupuesto, ejecución y avance de proyectos de construcción.
+
+REGLAS IMPORTANTES:
+1. Responde SIEMPRE en español, de forma clara, concisa y profesional.
+2. Interpreta las preguntas con flexibilidad: el usuario puede escribir con errores ortográficos, abreviar o usar sinónimos. Entiende la intención.
+3. Si no puedes responder con los datos disponibles, indica EXACTAMENTE qué información sí tienes y ofrece responderla.
+4. Nunca inventes datos. Si no está en el contexto, dilo claramente.
+5. Usa el formato Q X.XXM para montos en millones de Quetzales.
+
+SINÓNIMOS Y TÉRMINOS QUE DEBES RECONOCER:
+- "Presupuesto SAP / PPTO ER / Presupuesto ER / presupuesto / budget / SAP / costo total" → el presupuesto aprobado del proyecto
+- "Ejecutado / gasto / gastado / invertido / erogado / avance económico / lo que se ha pagado" → monto ejecutado
+- "Comprometido / pendiente de pago / por pagar / en proceso" → monto comprometido
+- "Asignado / total asignado / suma de ejecutado + comprometido" → monto asignado
+- "Disponible / saldo / restante / lo que queda / por ejecutar" → monto disponible
+- "% asignado / porcentaje / avance / progreso" → porcentaje de ejecución
+- "RDI / rdi / retorno" → RDI total del proyecto
+- "Área / zona / rubro" → desglose por área (CONSTRUCCIÓN, URBANIZACIÓN, etc.)
+- "Segmento / tipo / categoría / casas / lotes / urbanización" → desglose por segmento
+- "Etapa / actividad / partida / rubro" → desglose por etapa de construcción
+- "Mes / mensual / por mes / evolución / histórico / tendencia" → ejecución por mes
+- "hlq / hacienda / la querencia / querencia" → Hacienda La Querencia (hlq)
+- "clc / condado / la ceiba / ceiba" → Condado La Ceiba (clc)
+- "hsl / el sol / hacienda sol" → Hacienda El Sol (hsl)
+- "bdj / jalapa / bosques jalapa" → Bosques de Jalapa (bdj)
+- "bdp / pinula / bosques pinula" → Bosques de Pinula (bdp)
+- "bse / santa elena / bosques santa elena" → Bosques de Santa Elena (bse)
+- "cse / condado santa elena" → Condado Santa Elena (cse)
+- "rdb / reserva / bosque reserva" → Reserva del Bosque (rdb)
+
+LO QUE PUEDES RESPONDER:
+✓ Presupuesto total y por área/segmento/etapa de cualquier proyecto
+✓ Monto ejecutado total y por área/segmento/etapa
+✓ Monto disponible y comprometido
+✓ Porcentaje de avance (% asignado y % disponible)
+✓ Ejecución mes a mes (qué se ejecutó en enero, febrero, etc.)
+✓ Comparación entre proyectos
+✓ Cuál proyecto tiene más/menos ejecución, más/menos disponible
+
+LO QUE AÚN NO TIENES (indícalo si preguntan):
+✗ Costos por metro cuadrado (m²) — pendiente de agregar
+✗ Desglose por fase (Fase 1, Fase 2) — pendiente de agregar
+✗ Datos históricos anteriores a los sincronizados`
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -103,23 +179,19 @@ Deno.serve(async (req) => {
     let systemPrompt: string
 
     if (error || !rows || rows.length === 0) {
-      systemPrompt = `Eres un asistente financiero del sistema Costos & Presupuestos.
-Aún no hay datos sincronizados desde Power BI.
-Responde siempre en español, de forma clara y profesional.
-Puedes explicar que una vez sincronizados podrás responder sobre: presupuesto, ejecutado, comprometido, disponible, porcentajes de avance, desglose por área, etapa y segmento de cualquier proyecto.
-Si preguntan datos específicos, indica que deben correr el script de sincronización de Power BI primero.`
+      systemPrompt = `${SYSTEM_BASE}
+
+ESTADO ACTUAL: No hay datos sincronizados desde Power BI todavía.
+Indica que deben correr el script de sincronización para que los datos estén disponibles.`
     } else {
       const projectList = rows.map(r => `${r.project_name} (${r.project_key})`).join(', ')
-      const allContexts = rows.map(r => buildProjectContext(r as Record<string, unknown>)).join('\n---')
+      const allContexts = rows.map(r => buildProjectContext(r as Record<string, unknown>)).join('\n---\n')
 
-      systemPrompt = `Eres un asistente financiero del sistema Costos & Presupuestos.
-Tienes acceso a datos actualizados desde Power BI de ${rows.length} proyecto(s): ${projectList}.
-Responde siempre en español, de forma clara, concisa y profesional.
-Usa el formato Q X.XXM para montos en millones de Quetzales.
-Si el usuario no especifica proyecto y hay varios, identifica a cuál se refiere por el contexto o pregunta.
-Si no tienes el dato exacto, indícalo y sugiere consultar el dashboard.
+      systemPrompt = `${SYSTEM_BASE}
 
-DATOS DE TODOS LOS PROYECTOS:
+PROYECTOS DISPONIBLES (${rows.length}): ${projectList}
+
+DATOS DETALLADOS DE TODOS LOS PROYECTOS:
 ${allContexts}`
     }
 
@@ -133,11 +205,11 @@ ${allContexts}`
         model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: systemPrompt },
-          ...history.slice(-6),
+          ...history.slice(-8),
           { role: 'user', content: message },
         ],
-        temperature: 0.2,
-        max_tokens: 700,
+        temperature: 0.15,
+        max_tokens: 800,
       }),
     })
 
