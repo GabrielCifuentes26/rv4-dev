@@ -172,31 +172,28 @@
 
   const SESSION_KEY = 'cp_chat_session';
 
-  function getCurrentUserId() {
+  function isLoggedIn() {
     try {
       const s = JSON.parse(localStorage.getItem('sb-iipgrojliqeyycvgnkrc-auth-token') || 'null');
-      return s?.user?.id ?? null;
-    } catch { return null; }
+      return !!(s?.access_token);
+    } catch { return false; }
   }
 
   function saveSession() {
-    const userId = getCurrentUserId();
-    if (!userId) return;
+    if (!isLoggedIn()) return;
     const msgs = Array.from(messages.querySelectorAll('.cp-msg')).map(el => ({
       role: el.classList.contains('user') ? 'user' : 'assistant',
       text: el.querySelector('.cp-bubble')?.textContent ?? ''
     }));
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ userId, history, msgs }));
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ history, msgs }));
   }
 
   function restoreSession() {
     try {
-      const userId = getCurrentUserId();
-      if (!userId) return;
+      if (!isLoggedIn()) return;
       const raw = sessionStorage.getItem(SESSION_KEY);
       if (!raw) return;
       const data = JSON.parse(raw);
-      if (data.userId !== userId) { sessionStorage.removeItem(SESSION_KEY); return; }
       history = data.history || [];
       if (data.msgs && data.msgs.length > 1) {
         messages.innerHTML = '';
