@@ -105,7 +105,7 @@ function buildProjectContext(row: Record<string, unknown>): string {
       `    ${r[mesKey]}: Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Comprometido ${fmt(r['[ComprometidoErequester]'] as number)}`
     ).join('\n') || '    Sin datos'
 
-  // Costo por m² (casas y urbanización)
+  // Costo por m² (casas y urbanización) — solo costo planificado (presupuesto / m²)
   const m2 = PROJECT_M2[row.project_key as string]
   let m2Lines = '    Sin datos de m²'
   if (m2) {
@@ -113,14 +113,10 @@ function buildProjectContext(row: Record<string, unknown>): string {
     const costosUrba  = porArea.find(r => String(r[areaKey] ?? '').toLowerCase().includes('urbaniz'))
     const presupCasas = (costosCasas?.['[PresupuestoErequester]'] as number) ?? 0
     const presupUrba  = (costosUrba?.['[PresupuestoErequester]'] as number) ?? 0
-    const ejCasas     = (costosCasas?.['[EjecutadoErequester]'] as number) ?? 0
-    const ejUrba      = (costosUrba?.['[EjecutadoErequester]'] as number) ?? 0
     const ppM2Casas   = m2.casas > 0 ? Math.round(presupCasas / m2.casas) : 0
     const ppM2Urba    = m2.urbanizacion > 0 ? Math.round(presupUrba / m2.urbanizacion) : 0
-    const ejM2Casas   = m2.casas > 0 ? Math.round(ejCasas / m2.casas) : 0
-    const ejM2Urba    = m2.urbanizacion > 0 ? Math.round(ejUrba / m2.urbanizacion) : 0
-    m2Lines = `    Casas: ${m2.casas.toLocaleString()} m² | Ppto Q${ppM2Casas.toLocaleString()}/m² ($${Math.round(ppM2Casas/USD_RATE).toLocaleString()}/m²) | Ejecutado Q${ejM2Casas.toLocaleString()}/m²
-    Urbanización: ${m2.urbanizacion.toLocaleString()} m² | Ppto Q${ppM2Urba.toLocaleString()}/m² ($${Math.round(ppM2Urba/USD_RATE).toLocaleString()}/m²) | Ejecutado Q${ejM2Urba.toLocaleString()}/m²
+    m2Lines = `    Casas: ${m2.casas.toLocaleString()} m² construidos — costo Q${ppM2Casas.toLocaleString()}/m² ($${Math.round(ppM2Casas/USD_RATE).toLocaleString()}/m²)
+    Urbanización: ${m2.urbanizacion.toLocaleString()} m² — costo Q${ppM2Urba.toLocaleString()}/m² ($${Math.round(ppM2Urba/USD_RATE).toLocaleString()}/m²)
     Total proyecto: ${m2.total.toLocaleString()} m²`
   }
 
@@ -197,7 +193,7 @@ LO QUE PUEDES RESPONDER:
 ✓ Porcentaje de avance (% asignado y % disponible)
 ✓ Ejecución mes a mes — histórico completo disponible
 ✓ Desglose por Fase (Fase 01, Fase 02, Fase 03, etc.)
-✓ Costo por metro cuadrado (m²) de Casas y Urbanización — en Q y en USD
+✓ Costo por metro cuadrado (m²) de Casas y Urbanización — en Q y en USD. Cuando te pregunten por costo por m², responde directamente: "El costo por m² en Casas de [proyecto] es Q X,XXX/m² ($XXX/m²)". No mezcles con ejecutado parcial.
 ✓ Metros cuadrados totales de construcción por proyecto
 ✓ Comparación entre proyectos
 ✓ Cuál proyecto tiene más/menos ejecución, más/menos disponible, menor/mayor costo por m²
