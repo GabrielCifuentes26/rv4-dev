@@ -57,19 +57,18 @@ function detectProjectKey(message: string): string {
 const HF_MODEL = 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
 
 async function getEmbedding(text: string): Promise<number[] | null> {
-  const apiKey = Deno.env.get('HF_API_KEY')
-  if (!apiKey) return null
+  // HF_API_KEY > HUB_API_KEY > anonymous (rate-limited but functional for low usage)
+  const apiKey = Deno.env.get('HF_API_KEY') ?? Deno.env.get('HUB_API_KEY') ?? ''
   try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
     const res = await fetch(
       `https://api-inference.huggingface.co/pipeline/feature-extraction/${HF_MODEL}`,
       {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ inputs: text, options: { wait_for_model: true } }),
-        signal: AbortSignal.timeout(7000),
+        signal: AbortSignal.timeout(8000),
       }
     )
     if (!res.ok) return null
