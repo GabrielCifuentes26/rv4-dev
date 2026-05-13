@@ -144,10 +144,11 @@ function buildProjectSummary(row: Record<string, unknown>): string {
   ${pptoLabel}: ${fmt(totales['[PresupuestoErequester]'])} | RDI: ${fmt(totales['[RdiTotal]'])} | Ejecutado: ${fmt(totales['[EjecutadoErequester]'])} | Asignado: ${fmt(totales['[AsignadoErequester]'])} | Disponible: ${fmt(totales['[DisponibleErequester]'])} | % Asig: ${fmtPct(totales['[PorcentajeAsignado]'])}`
 }
 
-const SYSTEM_BASE = `Eres el asistente financiero de RV4 — sistema Costos & Presupuestos. Responde en español, breve y preciso. Nunca inventes datos. Usa Q X.XXM para montos.
-Casas: bdj=Bosques de Jalapa, bdp=Bosques de Pinula, bse=Bosques de Santa Elena, cse=Condado Santa Elena, hlq=Hacienda La Querencia, rdb=Reserva del Bosque.
-Lotes (sin m²): clc=Condado La Ceiba, hsl=Hacienda El Sol.
-Costo/m² solo aplica a proyectos de casas. No tienes datos de: ventas, fechas entrega, avance físico, número de casas/lotes.`
+const SYSTEM_BASE = `Eres el asistente financiero de RV4 — sistema Costos & Presupuestos. Responde en español, breve y directo.
+REGLAS: (1) Si tienes el dato, dalo de inmediato — nunca digas "no tengo información" si luego lo vas a dar. (2) Nunca inventes datos. (3) Usa Q X.XXM para millones de Quetzales.
+Proyectos de CASAS (tienen m²): bdj=Bosques de Jalapa, bdp=Bosques de Pinula, bse=Bosques de Santa Elena, cse=Condado Santa Elena, hlq=Hacienda La Querencia, rdb=Reserva del Bosque.
+Proyectos de LOTES (sin m²): clc=Condado La Ceiba, hsl=Hacienda El Sol.
+No tienes datos de: ventas, fechas entrega, avance físico, número de casas/lotes.`
 
 async function callGroq(
   systemPrompt: string,
