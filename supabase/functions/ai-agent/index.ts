@@ -259,19 +259,24 @@ DATOS DE PROYECTOS:
 ${allContexts}`
     }
 
-    // Llamar a Groq con fallback a modelo más pequeño si hay rate limit (429)
-    let groqRes = await callGroq(systemPrompt, history, message, 'llama-3.3-70b-versatile')
-    if (groqRes.status === 429) {
-      groqRes = await callGroq(systemPrompt, history, message, 'llama-3.1-8b-instant')
+    // Llamar a Groq con fallback si hay rate limit (429)
+    const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it']
+    let groqRes: Response | null = null
+    let groqData: Record<string, unknown> = {}
+    for (const model of models) {
+      groqRes = await callGroq(systemPrompt, history, message, model)
+      groqData = await groqRes.json() as Record<string, unknown>
+      if (groqRes.status !== 429) break
+      console.warn(`Rate limit en ${model}, intentando siguiente modelo...`)
     }
 
-    const groqData = await groqRes.json()
-    if (!groqRes.ok) {
-      console.error('Groq error:', groqRes.status, JSON.stringify(groqData))
+    if (!groqRes!.ok) {
+      console.error('Groq error:', groqRes!.status, JSON.stringify(groqData))
     }
-    const reply: string = groqData.choices?.[0]?.message?.content
-      ?? groqData.error?.message
-      ?? `Error del modelo (${groqRes.status}). Intenta de nuevo.`
+    const reply: string = (groqData.choices as { message: { content: string } }[])?.[0]?.message?.content
+      ?? (groqRes!.status === 429
+        ? 'El asistente está temporalmente no disponible por límite de uso. Intenta en unos minutos.'
+        : `Error del modelo (${groqRes!.status}). Intenta de nuevo.`)
 
     return new Response(JSON.stringify({ reply }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
