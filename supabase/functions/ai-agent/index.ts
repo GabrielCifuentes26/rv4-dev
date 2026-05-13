@@ -146,13 +146,22 @@ ${etapaLines}
 ${mesLines}`
 }
 
-// Resumen compacto (solo totales) para proyectos no activos
+// Resumen compacto (totales + desglose por área) para proyectos no activos
 function buildProjectSummary(row: Record<string, unknown>): string {
   const datasets  = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
   const totales   = ((datasets.totales as Record<string, number>[])?.[0]) ?? {}
+  const porArea:   Record<string, unknown>[] = (datasets.porArea as Record<string, unknown>[]) ?? []
   const pptoLabel = PPTO_LABEL[row.project_key as string] ?? 'Presupuesto SAP'
+  const areaKey   = porArea[0] ? labelKey(porArea[0]) : ''
+  const areaLines = porArea.length
+    ? porArea.map(r =>
+        `    ${r[areaKey] ?? 'Área'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}`
+      ).join('\n')
+    : '    Sin datos'
   return `  ### ${row.project_name} (${row.project_key}) — Datos al: ${row.mes_a}
-  ${pptoLabel}: ${fmt(totales['[PresupuestoErequester]'])} | Ejecutado: ${fmt(totales['[EjecutadoErequester]'])} | Asignado: ${fmt(totales['[AsignadoErequester]'])} | Disponible: ${fmt(totales['[DisponibleErequester]'])} | % Asig: ${fmtPct(totales['[PorcentajeAsignado]'])}`
+  ${pptoLabel}: ${fmt(totales['[PresupuestoErequester]'])} | RDI: ${fmt(totales['[RdiTotal]'])} | Ejecutado: ${fmt(totales['[EjecutadoErequester]'])} | Asignado: ${fmt(totales['[AsignadoErequester]'])} | Disponible: ${fmt(totales['[DisponibleErequester]'])} | % Asig: ${fmtPct(totales['[PorcentajeAsignado]'])}
+  Por área:
+${areaLines}`
 }
 
 const SYSTEM_BASE = `Eres un asistente financiero experto del sistema Costos & Presupuestos de RV4.
@@ -308,29 +317,67 @@ Indica que deben correr el script de sincronización para que los datos estén d
           : buildProjectSummary(r as Record<string, unknown>)
       }).join('\n---\n')
 
+      // Fecha de última sincronización (la más reciente entre todos los proyectos)
+      const lastSync = rows.reduce((latest, r) => {
+        const d = String(r.mes_a ?? '')
+        return d > latest ? d : latest
+      }, '')
+
       // Pre-calcular totales globales para evitar que el agente sume incorrectamente
       const globalTotals = rows.reduce((acc, r) => {
         const ds = ((r.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
         const t  = ((ds.totales as Record<string, number>[])?.[0]) ?? {}
-        acc.ppto      += (t['[PresupuestoErequester]'] as number) ?? 0
-        acc.ejecutado += (t['[EjecutadoErequester]']   as number) ?? 0
-        acc.asignado  += (t['[AsignadoErequester]']    as number) ?? 0
-        acc.disponible+= (t['[DisponibleErequester]']  as number) ?? 0
+        const porArea: Record<string, unknown>[] = (ds.porArea as Record<string, unknown>[]) ?? []
+        acc.ppto      += (t['[PresupuestoErequester]']  as number) ?? 0
+        acc.ejecutado += (t['[EjecutadoErequester]']    as number) ?? 0
+        acc.asignado  += (t['[AsignadoErequester]']     as number) ?? 0
+        acc.disponible+= (t['[DisponibleErequester]']   as number) ?? 0
         acc.comprometido += (t['[ComprometidoErequester]'] as number) ?? 0
+        acc.rdi       += (t['[RdiTotal]']               as number) ?? 0
+        // Sumar desglose por área globalmente
+        for (const aRow of porArea) {
+          const aKey  = labelKey(aRow)
+          const aName = String(aRow[aKey] ?? '').toLowerCase()
+          const ppto  = (aRow['[PresupuestoErequester]'] as number) ?? 0
+          const ejec  = (aRow['[EjecutadoErequester]']   as number) ?? 0
+          const asig  = (aRow['[AsignadoErequester]']    as number) ?? 0
+          const disp  = (aRow['[DisponibleErequester]']  as number) ?? 0
+          if (aName.includes('construcc') || aName.includes('casas')) {
+            acc.areaConstruccionPpto      += ppto
+            acc.areaConstruccionEjecutado += ejec
+            acc.areaConstruccionAsignado  += asig
+            acc.areaConstruccionDisponible+= disp
+          } else if (aName.includes('urbaniz')) {
+            acc.areaUrbanizacionPpto      += ppto
+            acc.areaUrbanizacionEjecutado += ejec
+            acc.areaUrbanizacionAsignado  += asig
+            acc.areaUrbanizacionDisponible+= disp
+          }
+        }
         return acc
-      }, { ppto: 0, ejecutado: 0, asignado: 0, disponible: 0, comprometido: 0 })
+      }, {
+        ppto: 0, ejecutado: 0, asignado: 0, disponible: 0, comprometido: 0, rdi: 0,
+        areaConstruccionPpto: 0, areaConstruccionEjecutado: 0, areaConstruccionAsignado: 0, areaConstruccionDisponible: 0,
+        areaUrbanizacionPpto: 0, areaUrbanizacionEjecutado: 0, areaUrbanizacionAsignado: 0, areaUrbanizacionDisponible: 0,
+      })
 
       systemPrompt = `${SYSTEM_BASE}
 
 PROYECTOS DISPONIBLES (${rows.length}): ${projectList}
+DATOS ACTUALIZADOS AL: ${lastSync} (fecha de última sincronización de Power BI)
 
 TOTALES GLOBALES (suma de todos los proyectos):
   Presupuesto total: ${fmt(globalTotals.ppto)}
+  RDI total: ${fmt(globalTotals.rdi)}
   Ejecutado total: ${fmt(globalTotals.ejecutado)}
   Asignado total: ${fmt(globalTotals.asignado)}
   Disponible total: ${fmt(globalTotals.disponible)}
   Comprometido total: ${fmt(globalTotals.comprometido)}
   % Asignado global: ${fmtPct(globalTotals.ppto > 0 ? globalTotals.asignado / globalTotals.ppto : 0)}
+
+TOTALES GLOBALES POR ÁREA (proyectos de casas):
+  CONSTRUCCIÓN: Presupuesto ${fmt(globalTotals.areaConstruccionPpto)}, Ejecutado ${fmt(globalTotals.areaConstruccionEjecutado)}, Asignado ${fmt(globalTotals.areaConstruccionAsignado)}, Disponible ${fmt(globalTotals.areaConstruccionDisponible)}
+  URBANIZACIÓN: Presupuesto ${fmt(globalTotals.areaUrbanizacionPpto)}, Ejecutado ${fmt(globalTotals.areaUrbanizacionEjecutado)}, Asignado ${fmt(globalTotals.areaUrbanizacionAsignado)}, Disponible ${fmt(globalTotals.areaUrbanizacionDisponible)}
 
 DATOS DE PROYECTOS:
 ${allContexts}`
