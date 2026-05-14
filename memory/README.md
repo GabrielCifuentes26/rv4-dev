@@ -10,6 +10,7 @@ Esta carpeta es el único lugar donde vive la memoria interna del proyecto.
 
 ## Archivos de referencia (leer solo si hace falta)
 
+- `MAP.md` — mapa completo de todos los archivos y carpetas del proyecto (índice detallado)
 - `HUB_INTEGRATION_MANUAL.md` — endpoints SSO/usuarios/métricas para integración con RV4 Hub
 - `AI_GUIDE.md` — instrucciones generales para cualquier asistente de IA en este proyecto
 - `project_session_plan.md` — plan histórico del rediseño de abril 2026 (referencia, ya implementado)
