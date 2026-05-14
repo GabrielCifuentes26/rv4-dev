@@ -1,129 +1,193 @@
-# Contexto Vivo del Proyecto
+# Contexto Técnico del Proyecto
 
-Ultima revision amplia: 2026-04-24
+Última revisión: 2026-05-14
 
-## Proposito
+---
 
-`Costos&Presupuestos` es una aplicacion web para control presupuestario y seguimiento operativo de proyectos. Es una web estatica con paginas HTML independientes que incluyen su propio CSS y JavaScript. Supabase funciona como backend para autenticacion, usuarios, roles, solicitudes, datos de modulos y metricas de actividad.
+## Propósito
 
-## Regla Para Nuevas Sesiones
+**Costos & Presupuestos** — aplicación web para control presupuestario y seguimiento operativo de proyectos inmobiliarios de RV4 (Guatemala). Web estática con páginas HTML independientes. Supabase como backend. Power BI como fuente de datos presupuestarios. Agente de IA para consultas en lenguaje natural.
 
-Para continuar rapido:
+---
 
-1. Leer este archivo.
-2. Leer `memory/DAILY_LOG.md`.
-3. Abrir solo el archivo puntual que se vaya a cambiar.
-4. Consultar `manual.html` solo si se necesita documentacion extensa o texto para usuario final.
+## Flujo de navegación
 
-## Flujo Principal
+```
+login.html → index.html → dashboard-{key}.html
+```
 
-El flujo actual del sistema es:
+- `login.html` valida con Supabase Auth. Si el usuario existe en `usuarios`, redirige a `index.html`.
+- `index.html` muestra tarjetas de proyectos + mapa Leaflet. Cada tarjeta abre el dashboard del proyecto.
+- Cada proyecto tiene su dashboard individual (`dashboard-bdj.html`, etc.).
 
-`login.html` -> `index.html` -> `dashboard.html?project=NombreProyecto`
-
-`login.html` valida credenciales con Supabase. Si el usuario existe en la tabla `usuarios`, redirige a `index.html`. Desde `index.html`, las tarjetas y marcadores del mapa envian al dashboard por parametro `project`.
+---
 
 ## Arquitectura
 
-- Frontend: HTML, CSS y JavaScript embebidos por pagina.
-- Backend: Supabase Auth + Supabase Database.
-- Graficas: Chart.js en `dashboard.html` y `cierre-contable.html`.
-- Mapa: Leaflet + OpenStreetMap en `index.html`.
-- Hosting previsto/configurado: Firebase Hosting con `firebase.json`; el manual tambien menciona GitHub Pages.
-- Assets: `imagenes de proyectos/` contiene 6 imagenes `.webp` para el slider y logos RV4.
-- Tracking: `assets/js/tracker.js` registra sesiones y vistas en tablas de Supabase.
+| Capa | Tecnología |
+|---|---|
+| Frontend | HTML + CSS + JS embebido por página (sin frameworks) |
+| Backend / Auth | Supabase Auth + Supabase Database |
+| Edge Functions | Supabase Edge Functions (Deno/TypeScript) |
+| Gráficas | Chart.js |
+| Mapa | Leaflet + OpenStreetMap |
+| IA | Groq API (LLaMA 3.3-70B) + pgvector (caché semántico) |
+| Fuente de datos | Power BI → scripts PowerShell → Supabase |
+| Hosting | GitHub Pages (`gabrielcifuentes26.github.io/rv4`) |
 
-## Estructura de Carpetas
+---
 
-- Raiz del proyecto: paginas HTML publicas principales (`index.html`, `login.html`, `admin.html`, etc.), `firebase.json`, `package.json` y apuntador `CLAUDE.md`.
-- `assets/js/`: JavaScript publico compartido. Actualmente contiene `tracker.js`.
-- `database/`: scripts SQL para Supabase. Actualmente contiene `setup.sql`.
-- `imagenes de proyectos/`: imagenes y logos usados por la interfaz.
-- `memory/`: memoria interna, guia para asistentes y bitacora diaria.
-- `tools/firebase/`: scripts locales de configuracion Firebase.
-- `archive/empty-folders/`: carpetas antiguas vacias archivadas para no dejarlas sueltas en la raiz.
-
-## Paginas y Responsabilidades
+## Páginas y responsabilidades
 
 ### `login.html`
-
-Login, registro, solicitud de acceso, seleccion de empresa `RV4` / `CONSBA`, solicitud de reinicio y cambio de contraseña por recovery link. Usa tablas `usuarios`, `solicitudes` y `solicitudes_reset`. El registro publico no crea usuario en Supabase Auth; crea una solicitud pendiente para evitar errores de correo de confirmacion.
+Auth, registro, solicitud de acceso, reset de contraseña. Tablas: `usuarios`, `solicitudes`, `solicitudes_reset`. El registro público crea fila en `solicitudes`; el admin aprueba y crea el usuario en Supabase Auth.
 
 ### `index.html`
+Hero con slider, categorías (Casas/Lotes/Edificios), tarjetas de proyectos, mapa Leaflet. Filtro por categoría afecta tarjetas y marcadores simultáneamente. Chat widget integrado.
 
-Inicio despues del login. Muestra hero con slider, categorias de proyectos, tarjetas, mapa Leaflet y navegacion a modulos. Lee rol en `usuarios` para mostrar boton Admin. Tiene datos de proyectos quemados en el arreglo `PROJECTS`.
+### Dashboards individuales por proyecto
 
-### `dashboard.html`
+| Archivo | Proyecto | Tipo |
+|---|---|---|
+| `dashboard-bdj.html` | Bosques de Jalapa | Casas |
+| `dashboard-bdp.html` | Bosques de Pinula | Casas |
+| `dashboard-bse.html` | Bosques de Santa Elena | Casas |
+| `dashboard-clc.html` | Condado La Ceiba | Lotes |
+| `dashboard-cse.html` | Condado Santa Elena | Casas |
+| `dashboard-hlq.html` | Hacienda La Querencia | Casas |
+| `dashboard-hsl.html` | Hacienda El Sol | Lotes |
+| `dashboard-rdb.html` | Reserva del Bosque | Casas |
 
-Dashboard presupuestario por proyecto usando `?project=`. Los KPIs, tabla y graficas estan quemados por ahora. Usa Supabase solo para validar sesion y cerrar sesion. Incluye `assets/js/tracker.js`.
+Cada dashboard tiene: KPIs presupuestarios, tabla interactiva con filtros, gráficas Chart.js, chat widget flotante, tour interactivo.
 
 ### `admin.html`
-
-Panel administrador. Valida rol `admin` en `usuarios`. Gestiona usuarios, solicitudes de acceso, solicitudes de reinicio de contraseña y metricas de uso. Usa `usuarios`, `solicitudes`, `solicitudes_reset`, `sesiones` y `page_views`. Al aprobar una solicitud, crea el usuario en Supabase Auth si todavia no existe y lo marca con email confirmado.
+Panel admin: gestión de usuarios, solicitudes de acceso, reset de contraseña, métricas de uso. Solo accesible con rol `admin`. Tablas: `usuarios`, `solicitudes`, `solicitudes_reset`, `sesiones`, `page_views`.
 
 ### `cierre-contable.html`
-
-Modulo de cierre contable. Maneja periodos, sociedades y 4 etapas por sociedad: Entrega de EEFF, Integraciones / ID Jobs, Revision y Cuadre Finalizado. Tiene vista tablero y vista analitica con Chart.js. Usa `cc_periodos`, `cc_sociedades`, `cc_cierres` y `usuarios`.
+Periodos, sociedades y 4 etapas por sociedad. Vista tablero + vista analítica. Tablas: `cc_periodos`, `cc_sociedades`, `cc_cierres`.
 
 ### `creacion-tableros.html`
-
-Modulo para crear proyectos, fases, tareas, dependencias y cronograma tipo Gantt. Admin puede crear/editar/eliminar; usuario puede visualizar. Usa `ct_proyectos`, `ct_fases`, `ct_tareas` y `usuarios`.
+Proyectos, fases, tareas, dependencias, Gantt. Tablas: `ct_proyectos`, `ct_fases`, `ct_tareas`.
 
 ### `avance-lotes.html`
+Seguimiento de lotes: status de receta, fechas, responsables, alertas, tabla, Gantt, CSV. Tabla: `al_proyectos`.
 
-Modulo de seguimiento de lotes. Maneja status de receta, fechas, responsables, carga en sistema, alertas, tabla, Gantt y exportacion CSV. Usa `al_proyectos` y `usuarios`. Si la tabla esta vacia y el usuario es admin, inserta datos seed.
+---
 
-### `manual.html`
+## Edge Functions (Supabase)
 
-Manual tecnico visual/imprimible. Explica el sistema, Supabase, roles, admin, login, diseño y modulos. Esta parcialmente desactualizado: habla de 6 modulos, pero el proyecto actual tambien tiene `avance-lotes.html`.
+Ruta base: `https://iipgrojliqeyycvgnkrc.supabase.co/functions/v1/`
 
-## Tablas Supabase Detectadas
+| Función | Propósito |
+|---|---|
+| `ai-agent` | Agente de IA: recibe preguntas, consulta datos PBI, llama a Groq, cachea con pgvector |
+| `sso` | Login automático desde RV4 Hub (genera magic link) |
+| `users` | Lista usuarios activos del tablero para el Hub |
+| `metricas` | KPIs globales del tablero para tarjeta del Hub |
 
-- `usuarios`: perfiles, rol, empresa, nivel, estado y otros campos usados por admin/login.
-- `solicitudes`: solicitudes de registro/aprobacion.
-- `solicitudes_reset`: solicitudes de reinicio de contraseña.
-- `cc_periodos`: periodos de cierre contable.
-- `cc_sociedades`: sociedades por periodo.
-- `cc_cierres`: etapas de cierre por sociedad.
-- `ct_proyectos`: proyectos del modulo creacion de tableros.
-- `ct_fases`: fases por proyecto.
-- `ct_tareas`: tareas por fase/proyecto.
-- `al_proyectos`: seguimiento de avance de lotes.
-- `sesiones`: sesiones registradas por `tracker.js`.
-- `page_views`: vistas de paginas registradas por `tracker.js`.
+---
 
-`database/setup.sql` crea/ajusta `usuarios`, `solicitudes`, `solicitudes_reset`, `cc_periodos`, `cc_sociedades` y `cc_cierres`. No contiene SQL para `ct_*`, `al_proyectos`, `sesiones` ni `page_views`.
+## Agente de IA — Arquitectura detallada
+
+### Flujo de una pregunta
+
+```
+Usuario pregunta
+    ↓
+detectProjectKey() — detecta proyecto por alias en el mensaje
+    ↓
+getEmbedding() — genera embedding 384-dim via HuggingFace (paraphrase-multilingual-MiniLM-L12-v2)
+    ↓
+find_similar_question() — busca en qa_cache con similitud coseno >= 0.88
+    ├── CACHE HIT → devuelve respuesta en <200ms (sin llamar a Groq)
+    └── CACHE MISS → continúa
+    ↓
+Lee powerbi_resumen_cache (is_current=true) — datos de todos los proyectos
+    ↓
+buildProjectContext() para proyecto activo + buildProjectSummary() para el resto
+    ↓
+Guard: trunca system prompt si supera 12,000 chars (evita error 413)
+    ↓
+callGroq() — llama con fallback: llama-3.3-70b → llama-3.1-8b → gemma2-9b
+    ↓
+Respuesta → guarda en qa_cache (fire and forget)
+    ↓
+Devuelve respuesta al usuario
+```
+
+### Proyectos con datos de m² (casas)
+`bdj`, `bdp`, `bse`, `cse`, `hlq`, `rdb` — el agente calcula costo por m² de construcción y urbanización.
+
+### Proyectos de lotes (sin m²)
+`clc`, `hsl` — usan `dimSegmentacion` con columnas Área/Segmento/Etapa. El agente incluye datos por Segmento (Propietario A, Propietario B, etc.).
+
+### Modelos de datos Power BI
+- **Perfil `hsl`** (usado también por `clc`): tabla `dimSegmentacion` (sin acento), columnas Area/Segmento/Etapa
+- **Perfil `hlq`**: tabla `dimSegmentación` (con acento), mismas columnas
+- **Perfil `bse`** (todos los demás): tabla `Rubros`, columnas Area/Segmento/Etapa
+
+---
+
+## Sincronización Power BI
+
+Scripts en `tools/powerbi/`:
+- `sync-powerbi-{key}.ps1` — un script por proyecto, llama a `sync-powerbi-resumen.ps1`
+- `sync-powerbi-resumen.ps1` — ejecuta consultas DAX contra Power BI Service y sube a Supabase
+
+Los datasets que se guardan por proyecto:
+`totales`, `porArea`, `porSegmento`, `porEtapa`, `porFase`, `porMes`, `porMesResumen`, `detalleFiltros`, `porMesFiltros`
+
+---
+
+## Tablas Supabase
+
+### Autenticación y usuarios
+- `usuarios` — perfiles, rol (`admin`/`usuario`), empresa (`RV4`/`CONSBA`), nivel, estado
+- `solicitudes` — solicitudes de registro pendientes de aprobación
+- `solicitudes_reset` — solicitudes de reset de contraseña
+
+### Power BI y AI
+- `powerbi_resumen_cache` — snapshots de datos Power BI por proyecto. Campo `is_current=true` marca el último; históricos con `is_current=false`. Unique constraint en `(project_key, mes_a)`.
+- `qa_cache` — caché semántico de preguntas y respuestas. Campos: `project_key`, `question`, `embedding (vector 384)`, `answer`, `mes_a`, `hit_count`.
+
+### Módulos
+- `cc_periodos`, `cc_sociedades`, `cc_cierres` — cierre contable
+- `ct_proyectos`, `ct_fases`, `ct_tareas` — creación de tableros
+- `al_proyectos` — avance de lotes
+- `sesiones`, `page_views` — tracking de actividad (via `assets/js/tracker.js`)
+
+### Funciones RPC
+- `find_similar_question(query_embedding, query_project_key, similarity_threshold, match_count)` — búsqueda por similitud coseno en `qa_cache` usando ivfflat index
+
+---
 
 ## Roles
 
-- `usuario`: puede entrar a paginas autenticadas y visualizar datos.
-- `admin`: ve boton Admin y puede crear/editar/eliminar en modulos administrativos.
+- `usuario` — acceso a páginas autenticadas, solo lectura
+- `admin` — todo lo anterior + crear/editar/eliminar en módulos admin
 
-Las paginas consultan `usuarios.rol` para activar controles admin.
+---
 
-## Convenciones de Edicion
+## Integración RV4 Hub
 
-- Mantener CSS/JS embebido salvo que se acuerde refactor.
-- Respetar navegacion compartida: logo, Presupuesto, Cronograma, Cierre Contable, Creacion de Tableros, Avance Lotes, Admin, Cerrar sesion.
-- Si se agrega un modulo, actualizar:
-  - navegacion en paginas relevantes;
-  - este archivo;
-  - `manual.html` si el cambio debe aparecer en documentacion formal;
-  - SQL si requiere tablas nuevas.
+Ver `memory/HUB_INTEGRATION_MANUAL.md` para el detalle técnico de los 3 endpoints (SSO, usuarios, métricas).
 
-## Riesgos Tecnicos Importantes
+---
 
-- Hay claves sensibles de Supabase expuestas en HTML/JS del navegador, incluyendo uso de `service_role` en algunas paginas/scripts.
-- Hay logica que guarda o muestra `password_text`.
-- Varias tablas usadas por el codigo no estan documentadas en `database/setup.sql`.
-- `manual.html` y `memory/project_session_plan.md` no reflejan completamente el estado actual.
+## Riesgos técnicos activos
 
-No repetir claves ni contraseñas en documentacion nueva. Si se corrige seguridad, mover operaciones privilegiadas a backend seguro, Supabase Edge Functions o servidor intermedio.
+1. Claves de Supabase (`anon key`) expuestas en HTML/JS del navegador — riesgo bajo para anon key, pero `service_role` en algunas páginas es crítico.
+2. `password_text` guardado en algunas tablas — pendiente de limpiar.
+3. Tablas `ct_*`, `al_proyectos`, `sesiones`, `page_views` no tienen SQL documentado en `database/setup.sql`.
+4. `manual.html` desactualizado — no refleja los dashboards individuales ni el agente de IA.
+5. El prompt del agente puede truncarse a 12,000 chars si hay muchas etapas — datos al final del contexto podrían quedar fuera.
 
-## Pendientes Conocidos
+---
 
-- Actualizar `manual.html` para incluir `avance-lotes.html`.
-- Documentar o crear SQL de tablas faltantes: `ct_*`, `al_proyectos`, `sesiones` y `page_views`.
-- Definir integracion futura con SAP Business One para `dashboard.html`.
-- Reemplazar coordenadas de ejemplo por coordenadas reales de proyectos.
-- Revisar seguridad de service keys y `password_text`.
+## Pendientes técnicos
+
+- Seed de preguntas frecuentes en `qa_cache` (discutido, no implementado)
+- Coordenadas reales de proyectos en el mapa
+- Integración SAP Business One para datos del dashboard
+- Documentar SQL de tablas faltantes
+- Actualizar `manual.html`

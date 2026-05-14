@@ -7,7 +7,7 @@
 ## ¿Qué hace esta integración?
 
 Permite que el Hub Central:
-1. **Inicie sesión automáticamente** al usuario en el tablero (sin que el usuario escriba usuario/contraseña)
+1. **Inicie sesión automáticamente** al usuario en el tablero (sin usuario/contraseña)
 2. **Consulte la lista de usuarios** con acceso al tablero
 3. **Muestre métricas en tiempo real** en la tarjeta del Hub
 
@@ -19,8 +19,11 @@ Permite que el Hub Central:
 |---|---|
 | URL del tablero | `https://gabrielcifuentes26.github.io/rv4/index.html` |
 | Base URL endpoints | `https://iipgrojliqeyycvgnkrc.supabase.co/functions/v1/` |
-| HUB_SECRET (SSO) | `8d98ed6a141f8a44ab565ac5200b89fbc178c2252778bed216b5d8b1a0b45858` |
-| HUB_API_KEY (users/métricas) | `dba354b3d0fa795bfe0501b4d91123287c1a164fa6bfc99dffcf62372c879ad6` |
+| HUB_SECRET (SSO) | `[HUB_SECRET — ver variable de entorno HUB_SECRET en Supabase secrets]` |
+| HUB_API_KEY (users/métricas) | `[HUB_API_KEY — ver variable de entorno HUB_API_KEY en Supabase secrets]` |
+| SUPABASE_ANON_KEY | `[SUPABASE_ANON_KEY — ver variable de entorno en Supabase secrets]` |
+
+> Las claves reales están en Supabase Dashboard → proyecto `iipgrojliqeyycvgnkrc` → Settings → Edge Functions → Secrets. Contactar a Gabriel Cifuentes para acceso.
 
 ---
 
@@ -49,7 +52,7 @@ Content-Type: application/json
 {
   "email":    "correo@rvcuatro.com",
   "nombre":   "Nombre Apellido",
-  "hubToken": "8d98ed6a141f8a44ab565ac5200b89fbc178c2252778bed216b5d8b1a0b45858"
+  "hubToken": "[HUB_SECRET]"
 }
 ```
 
@@ -66,11 +69,11 @@ Content-Type: application/json
 ### Respuesta con error
 
 ```json
-{ "error": "Token inválido." }        // hubToken incorrecto → HTTP 401
-{ "error": "email y hubToken son requeridos." }  // faltan campos → HTTP 400
+{ "error": "Token inválido." }                        // hubToken incorrecto → HTTP 401
+{ "error": "email y hubToken son requeridos." }        // faltan campos → HTTP 400
 ```
 
-### ⚠️ Regla importante
+### Regla importante
 El `redirectUrl` **expira en 1 hora** y **es de un solo uso**.  
 El Hub debe llamar `/sso` justo cuando el usuario hace clic — nunca guardar el link en caché.
 
@@ -82,8 +85,8 @@ El Hub debe llamar `/sso` justo cuando el usuario hace clic — nunca guardar el
 
 ```
 GET https://iipgrojliqeyycvgnkrc.supabase.co/functions/v1/users
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcGdyb2psaXFleXljdmdua3JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzA1NzYsImV4cCI6MjA5MTM0NjU3Nn0.Y6FQ-1qWd7HPMvTnK4alpKxM-YLJ5CsKmkorAZKMJrg
-x-api-key: dba354b3d0fa795bfe0501b4d91123287c1a164fa6bfc99dffcf62372c879ad6
+Authorization: Bearer [SUPABASE_ANON_KEY]
+x-api-key: [HUB_API_KEY]
 ```
 
 ### Respuesta
@@ -103,8 +106,8 @@ x-api-key: dba354b3d0fa795bfe0501b4d91123287c1a164fa6bfc99dffcf62372c879ad6
 
 ```
 GET https://iipgrojliqeyycvgnkrc.supabase.co/functions/v1/metricas
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcGdyb2psaXFleXljdmdua3JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzA1NzYsImV4cCI6MjA5MTM0NjU3Nn0.Y6FQ-1qWd7HPMvTnK4alpKxM-YLJ5CsKmkorAZKMJrg
-x-api-key: dba354b3d0fa795bfe0501b4d91123287c1a164fa6bfc99dffcf62372c879ad6
+Authorization: Bearer [SUPABASE_ANON_KEY]
+x-api-key: [HUB_API_KEY]
 ```
 
 ### Respuesta
@@ -123,25 +126,6 @@ x-api-key: dba354b3d0fa795bfe0501b4d91123287c1a164fa6bfc99dffcf62372c879ad6
 ```
 
 > Los datos se actualizan cada vez que se sincroniza Power BI.
-
----
-
-## Pruebas rápidas con curl
-
-```bash
-# Probar SSO
-curl -X POST https://iipgrojliqeyycvgnkrc.supabase.co/functions/v1/sso \
-  -H "Content-Type: application/json" \
-  -d '{"email":"prueba@rvcuatro.com","nombre":"Test","hubToken":"8d98ed6a141f8a44ab565ac5200b89fbc178c2252778bed216b5d8b1a0b45858"}'
-
-# Probar usuarios
-curl https://iipgrojliqeyycvgnkrc.supabase.co/functions/v1/users \
-  -H "x-api-key: dba354b3d0fa795bfe0501b4d91123287c1a164fa6bfc99dffcf62372c879ad6"
-
-# Probar métricas
-curl https://iipgrojliqeyycvgnkrc.supabase.co/functions/v1/metricas \
-  -H "x-api-key: dba354b3d0fa795bfe0501b4d91123287c1a164fa6bfc99dffcf62372c879ad6"
-```
 
 ---
 
