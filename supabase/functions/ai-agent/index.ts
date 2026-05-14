@@ -83,21 +83,29 @@ async function getEmbedding(text: string): Promise<number[] | null> {
 
 // ── PROMPT BUILDERS ───────────────────────────────────────────────────────
 function buildProjectContext(row: Record<string, unknown>): string {
-  const datasets   = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
-  const totales    = ((datasets.totales     as Record<string, number>[])?.[0]) ?? {}
-  const porArea:     Record<string, unknown>[] = (datasets.porArea      as Record<string, unknown>[]) ?? []
-  const porEtapa:    Record<string, unknown>[] = (datasets.porEtapa     as Record<string, unknown>[]) ?? []
-  const porFase:     Record<string, unknown>[] = (datasets.porFase      as Record<string, unknown>[]) ?? []
-  const porMes:      Record<string, unknown>[] = (datasets.porMesResumen as Record<string, unknown>[]) ?? []
+  const datasets     = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
+  const totales      = ((datasets.totales      as Record<string, number>[])?.[0]) ?? {}
+  const porArea:      Record<string, unknown>[] = (datasets.porArea       as Record<string, unknown>[]) ?? []
+  const porEtapa:     Record<string, unknown>[] = (datasets.porEtapa      as Record<string, unknown>[]) ?? []
+  const porFase:      Record<string, unknown>[] = (datasets.porFase       as Record<string, unknown>[]) ?? []
+  const porSegmento:  Record<string, unknown>[] = (datasets.porSegmento   as Record<string, unknown>[]) ?? []
+  const porMes:       Record<string, unknown>[] = (datasets.porMesResumen as Record<string, unknown>[]) ?? []
 
-  const areaKey  = porArea[0]  ? labelKey(porArea[0])  : ''
-  const etapaKey = porEtapa[0] ? labelKey(porEtapa[0]) : ''
-  const faseKey  = porFase[0]  ? labelKey(porFase[0])  : ''
-  const pptoLabel = PPTO_LABEL[row.project_key as string] ?? 'Presupuesto SAP'
+  const areaKey     = porArea[0]     ? labelKey(porArea[0])     : ''
+  const etapaKey    = porEtapa[0]    ? labelKey(porEtapa[0])    : ''
+  const faseKey     = porFase[0]     ? labelKey(porFase[0])     : ''
+  const segmentoKey = porSegmento[0] ? labelKey(porSegmento[0]) : ''
+  const pptoLabel   = PPTO_LABEL[row.project_key as string] ?? 'Presupuesto SAP'
 
   const areaLines = porArea.map(r =>
     `    ${r[areaKey] ?? 'Área'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
   ).join('\n') || '    Sin datos'
+
+  const segmentoLines = porSegmento.length
+    ? porSegmento.map(r =>
+        `    ${r[segmentoKey] ?? 'Segmento'}: ${pptoLabel} ${fmt(r['[PresupuestoErequester]'] as number)}, Ejecutado ${fmt(r['[EjecutadoErequester]'] as number)}, Asignado ${fmt(r['[AsignadoErequester]'] as number)}, Disponible ${fmt(r['[DisponibleErequester]'] as number)}, % Asig ${fmtPct(r['[PorcentajeAsignado]'] as number)}`
+      ).join('\n')
+    : '    Sin datos'
 
   const etapaLines = [...porEtapa]
     .sort((a, b) => ((b['[PresupuestoErequester]'] as number) ?? 0) - ((a['[PresupuestoErequester]'] as number) ?? 0))
@@ -133,6 +141,10 @@ function buildProjectContext(row: Record<string, unknown>): string {
     Total proyecto: ${m2.total.toLocaleString()} m²`
   }
 
+  const segmentoSection = porSegmento.length
+    ? `\n  Segmentos (Propietario/Tipo):\n${segmentoLines}`
+    : ''
+
   return `
   ### ${row.project_name} (${row.project_key}) — Datos al: ${row.mes_a}
   ${pptoLabel}: ${fmt(totales['[PresupuestoErequester]'])} | RDI: ${fmt(totales['[RdiTotal]'])} | Ejec: ${fmt(totales['[EjecutadoErequester]'])} | Comp: ${fmt(totales['[ComprometidoErequester]'])} | Asig: ${fmt(totales['[AsignadoErequester]'])} | Disp: ${fmt(totales['[DisponibleErequester]'])} | %Asig: ${fmtPct(totales['[PorcentajeAsignado]'])}
@@ -144,7 +156,7 @@ ${m2Lines}
 ${faseLines}
 
   Áreas:
-${areaLines}
+${areaLines}${segmentoSection}
 
   Etapas (todas, ordenadas por presupuesto):
 ${etapaLines}
