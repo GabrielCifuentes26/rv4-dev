@@ -166,19 +166,57 @@ ${mesLines}`
 }
 
 function buildProjectSummary(row: Record<string, unknown>): string {
-  const datasets  = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
-  const totales   = ((datasets.totales as Record<string, number>[])?.[0]) ?? {}
-  const porEtapa: Record<string, unknown>[] = (datasets.porEtapa as Record<string, unknown>[]) ?? []
-  const pptoLabel = PPTO_LABEL[row.project_key as string] ?? 'Presupuesto SAP'
-  const etapaKey  = porEtapa[0] ? labelKey(porEtapa[0]) : ''
+  const datasets     = ((row.payload as Record<string, unknown>)?.datasets ?? {}) as Record<string, unknown>
+  const totales      = ((datasets.totales      as Record<string, number>[])?.[0]) ?? {}
+  const porArea:     Record<string, unknown>[] = (datasets.porArea      as Record<string, unknown>[]) ?? []
+  const porEtapa:    Record<string, unknown>[] = (datasets.porEtapa     as Record<string, unknown>[]) ?? []
+  const porFase:     Record<string, unknown>[] = (datasets.porFase      as Record<string, unknown>[]) ?? []
+  const porSegmento: Record<string, unknown>[] = (datasets.porSegmento  as Record<string, unknown>[]) ?? []
+  const porMes:      Record<string, unknown>[] = (datasets.porMesResumen as Record<string, unknown>[]) ?? []
+
+  const pptoLabel   = PPTO_LABEL[row.project_key as string] ?? 'Presupuesto SAP'
+  const areaKey     = porArea[0]     ? labelKey(porArea[0])     : ''
+  const etapaKey    = porEtapa[0]    ? labelKey(porEtapa[0])    : ''
+  const faseKey     = porFase[0]     ? labelKey(porFase[0])     : ''
+  const segmentoKey = porSegmento[0] ? labelKey(porSegmento[0]) : ''
+  const mesKey      = porMes[0]      ? findKey(porMes[0], 'MesA') : 'Calendario[MesA]'
+
+  const areaLines = porArea.map(r =>
+    `    ${r[areaKey] ?? 'Área'}: ppto ${fmt(r['[PresupuestoErequester]'] as number)} ejec ${fmt(r['[EjecutadoErequester]'] as number)} disp ${fmt(r['[DisponibleErequester]'] as number)}`
+  ).join('\n') || '    Sin datos'
+
+  const segLines = porSegmento.length
+    ? porSegmento.map(r =>
+        `    ${r[segmentoKey] ?? 'Seg'}: ppto ${fmt(r['[PresupuestoErequester]'] as number)} ejec ${fmt(r['[EjecutadoErequester]'] as number)} disp ${fmt(r['[DisponibleErequester]'] as number)}`
+      ).join('\n')
+    : ''
+
+  const faseLines = porFase.length
+    ? porFase.map(r =>
+        `    Fase ${r[faseKey] ?? '?'}: ppto ${fmt(r['[PresupuestoErequester]'] as number)} ejec ${fmt(r['[EjecutadoErequester]'] as number)} disp ${fmt(r['[DisponibleErequester]'] as number)}`
+      ).join('\n')
+    : ''
+
+  // Top 15 etapas por presupuesto para no explotar el límite de chars
   const etapaLines = [...porEtapa]
     .sort((a, b) => ((b['[PresupuestoErequester]'] as number) ?? 0) - ((a['[PresupuestoErequester]'] as number) ?? 0))
+    .slice(0, 15)
     .map(r => `    ${r[etapaKey] ?? '?'}: ppto ${fmt(r['[PresupuestoErequester]'] as number)} ejec ${fmt(r['[EjecutadoErequester]'] as number)} disp ${fmt(r['[DisponibleErequester]'] as number)}`)
     .join('\n')
-  return `  ### ${row.project_name} (${row.project_key}) — Datos al: ${row.mes_a}
-  ${pptoLabel}: ${fmt(totales['[PresupuestoErequester]'])} | RDI: ${fmt(totales['[RdiTotal]'])} | Ejecutado: ${fmt(totales['[EjecutadoErequester]'])} | Asignado: ${fmt(totales['[AsignadoErequester]'])} | Disponible: ${fmt(totales['[DisponibleErequester]'])} | % Asig: ${fmtPct(totales['[PorcentajeAsignado]'])}
-  Etapas:
-${etapaLines || '    Sin datos'}`
+
+  // Últimos 6 meses
+  const mesLines = porMes
+    .filter(r => r[mesKey] != null)
+    .slice(-6)
+    .map(r => `    ${r[mesKey]}: ejec ${fmt(r['[EjecutadoErequester]'] as number)} asig ${fmt(r['[AsignadoErequester]'] as number)}`)
+    .join('\n')
+
+  return `  ### ${row.project_name} (${row.project_key}) — al: ${row.mes_a}
+  ${pptoLabel}: ${fmt(totales['[PresupuestoErequester]'])} | Ejec: ${fmt(totales['[EjecutadoErequester]'])} | Asig: ${fmt(totales['[AsignadoErequester]'])} | Disp: ${fmt(totales['[DisponibleErequester]'])} | %Asig: ${fmtPct(totales['[PorcentajeAsignado]'])}
+  Áreas:
+${areaLines}${segLines ? `\n  Segmentos:\n${segLines}` : ''}${faseLines ? `\n  Fases:\n${faseLines}` : ''}
+  Top etapas:
+${etapaLines || '    Sin datos'}${mesLines ? `\n  Últimos 6 meses:\n${mesLines}` : ''}`
 }
 
 const SYSTEM_BASE = `Eres el asistente financiero de RV4 — sistema Costos & Presupuestos. Responde en español, breve y directo.
