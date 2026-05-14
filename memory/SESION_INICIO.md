@@ -15,6 +15,16 @@
 
 ---
 
+## FRASES CLAVE
+
+**Para iniciar sesión:**
+> Lee memory/SESION_INICIO.md y memory/PROJECT_CONTEXT.md y dime en dónde nos quedamos
+
+**Para cerrar sesión:**
+> Actualiza memory/SESION_INICIO.md, memory/DAILY_LOG.md y memory/MAP.md con todo lo que hicimos hoy y haz commit + push
+
+---
+
 ## FLUJO DE BRANCHES
 
 - `dev` → desarrollo activo, features nuevas, rediseños visuales
@@ -24,10 +34,9 @@
 
 **Deploy ai-agent (cuando hay cambio en la Edge Function):**
 ```powershell
-$env:SUPABASE_ACCESS_TOKEN = "[SUPABASE_ACCESS_TOKEN — ver variable de entorno del sistema]"
+# El token está guardado como variable de entorno del sistema (SUPABASE_ACCESS_TOKEN)
 npx supabase functions deploy ai-agent --project-ref iipgrojliqeyycvgnkrc
 ```
-> El token real está guardado como variable de entorno de Windows (User scope). En PowerShell ya debería estar disponible como `$env:SUPABASE_ACCESS_TOKEN`.
 
 ---
 
@@ -42,51 +51,50 @@ npx supabase functions deploy ai-agent --project-ref iipgrojliqeyycvgnkrc
 ### Lo que ya funciona
 
 **Dashboard individual por proyecto:**
-Cada proyecto tiene su propio HTML: `dashboard-bdj.html`, `dashboard-bdp.html`, `dashboard-bse.html`, `dashboard-clc.html`, `dashboard-cse.html`, `dashboard-hlq.html`, `dashboard-hsl.html`, `dashboard-rdb.html`.
+`dashboard-bdj.html`, `dashboard-bdp.html`, `dashboard-bse.html`, `dashboard-clc.html`, `dashboard-cse.html`, `dashboard-hlq.html`, `dashboard-hsl.html`, `dashboard-rdb.html`
 
-**Agente de IA (ai-agent) — OPERATIVO:**
+**Agente de IA (ai-agent) — OPERATIVO y DEPLOYADO:**
 - Edge Function en Supabase: `ai-agent`
-- Lee datos de Power BI desde `powerbi_resumen_cache` (tabla Supabase)
-- Construye prompt con contexto de todos los proyectos
-- Llama a Groq (llama-3.3-70b → llama-3.1-8b → gemma2-9b en cascada)
+- Lee datos de Power BI desde `powerbi_resumen_cache`
+- Contexto incluye: totales, por área, **por segmento** (Propietario A/B en CLC/HSL — fix de hoy), por etapa, por fase, por mes, costo por m²
 - Caché semántico con pgvector (`qa_cache`): respuestas similares reutilizadas en <200ms
-- Contexto incluye: totales, por área, por segmento (Propietario A/B en CLC/HSL), por etapa, por fase, por mes, costo por m²
-- Guard de prompt: si supera 12,000 chars se trunca para evitar error 413
+- Fallback de modelos: llama-3.3-70b → llama-3.1-8b → gemma2-9b
+- Guard de prompt: trunca a 12,000 chars para evitar error 413
+- Logging detallado: muestra status code exacto de Groq en los logs de Supabase
 
 **Chat widget:**
-- Archivo compartido: `assets/js/chat-widget.js`
-- Integrado en todos los dashboards y en `index.html`
-- Abre un panel flotante dorado esquina inferior derecha
+- `assets/js/chat-widget.js` — compartido por todos los dashboards e `index.html`
+- Panel flotante dorado, esquina inferior derecha
 
 **Sincronización Power BI:**
-- Scripts en `tools/powerbi/sync-powerbi-*.ps1` (uno por proyecto)
-- Guarda snapshot en `powerbi_resumen_cache` con flag `is_current=true`
-- Históricos preservados con `is_current=false`
+- Scripts en `tools/powerbi/sync-powerbi-*.ps1`
+- Guarda en `powerbi_resumen_cache` con `is_current=true`; históricos con `is_current=false`
 
 **Integración RV4 Hub (SSO):**
 - Edge Functions: `sso`, `users`, `metricas`
-- Manual técnico: `memory/HUB_INTEGRATION_MANUAL.md`
+- Manual: `memory/HUB_INTEGRATION_MANUAL.md`
 
-### Últimos cambios realizados (2026-05-14)
+**Sistema de memoria del proyecto:**
+- `CLAUDE.md` → apunta a `memory/SESION_INICIO.md` como primer archivo
+- `memory/SESION_INICIO.md` → estado actual + reglas (este archivo)
+- `memory/PROJECT_CONTEXT.md` → arquitectura técnica completa
+- `memory/MAP.md` → mapa de todos los archivos y carpetas
+- `memory/DAILY_LOG.md` → bitácora diaria
+
+### Commits del día (2026-05-14)
 
 | Commit | Descripción |
 |---|---|
-| `b1eeac5` | fix: porSegmento no se incluía en contexto → Propietario A/B ahora visibles para el agente |
-| `c66dad1` | fix: logging detallado de errores Groq + guard truncar prompt >12k chars |
-| `d2fa2eb` | feat: caché semántico Q&A con pgvector + históricos Power BI |
+| `b169ece` | docs: CLAUDE.md apunta directo a SESION_INICIO como primer archivo a leer |
+| `5133a99` | docs: mapa completo del proyecto (MAP.md) + mover manual.html a docs/ |
+| `579a429` | docs: reorganizar y actualizar toda la memoria del proyecto |
+| `b1eeac5` | fix: porSegmento no se incluía en contexto → Propietario A/B visibles para el agente |
+| `c66dad1` | fix: logging detallado errores Groq + guard truncar prompt >12k chars |
 
 ### Pendientes conocidos
 
-- Idea discutida pero NO implementada: banco de miles de preguntas pre-cargadas en `qa_cache` como seed. El caché actual se autopopula con uso real; la idea era pre-cargarlo.
-- Branch `dev` tiene trabajo de UI (marimekko CLC, filtros interactivos) que no está en `master`
-- Coordenadas reales de proyectos en el mapa (actualmente son ejemplos)
-- Integración con SAP Business One para datos del dashboard (pendiente largo plazo)
-
----
-
-## CÓMO USAR ESTE ARCHIVO
-
-Al iniciar una nueva sesión decirle a Claude:
-> "Lee SESION_INICIO y PROJECT_CONTEXT y dime en dónde nos quedamos"
-
-Claude leerá ambos archivos y podrá retomar sin preguntar nada más.
+- **Verificar** que el agente responda correctamente a preguntas de segmento en CLC (ej. "¿cuánto tenemos disponible en Propietario B?") — fix deployado hoy, pendiente confirmar
+- **Merge dev → master** para unificar trabajo de UI: marimekko CLC, filtros interactivos CLC/HLQ/HSL
+- **Seed de qa_cache** — banco de preguntas frecuentes pre-cargadas (discutido, no implementado)
+- Coordenadas reales de proyectos en el mapa
+- Integración SAP Business One (largo plazo)
