@@ -2214,10 +2214,10 @@
         tbody.addEventListener('click', e => {
             const tr = e.target.closest('tr');
             if (!tr || tr.classList.contains('total-row')) return;
-            const onChevron = !!e.target.closest('.row-chev');
-            if (onChevron && tr.classList.contains('tr-expandable')) {
+            const onNameCell = !!e.target.closest('td:first-child');
+            if (onNameCell && tr.classList.contains('tr-expandable')) {
                 handleExpand(tbody, tr);
-            } else if (!onChevron) {
+            } else if (!onNameCell) {
                 handleRowSelect(tbody, tr);
             }
         });
