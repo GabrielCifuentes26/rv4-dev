@@ -675,57 +675,8 @@
             border-radius: 20px;
             padding: 32px 28px;
             box-shadow: var(--shadow);
-            display: flex; flex-direction: row; gap: 0;
-            border-top: 3px solid transparent;
-        }
-        .analisis-cat-left {
-            flex: 0 0 auto; min-width: 220px; max-width: 260px;
             display: flex; flex-direction: column; gap: 4px;
-            padding-right: 28px;
-        }
-        .analisis-cat-divider {
-            width: 1px; background: var(--border);
-            align-self: stretch; flex-shrink: 0; margin: 0 28px;
-        }
-        .analisis-cat-right {
-            flex: 1; display: flex; flex-direction: column; gap: 0;
-            min-width: 0;
-        }
-        .analisis-proj-title {
-            font-size: 0.82rem; font-weight: 800; color: var(--navy);
-            margin-bottom: 2px;
-        }
-        .analisis-proj-sub {
-            font-size: 0.65rem; color: var(--gray2); font-weight: 600;
-            letter-spacing: 0.3px; margin-bottom: 14px;
-        }
-        .analisis-proj-row {
-            display: grid; grid-template-columns: 1fr auto auto;
-            align-items: center; gap: 10px; margin-bottom: 8px;
-        }
-        .analisis-proj-name {
-            font-size: 0.72rem; font-weight: 600; color: var(--navy);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .analisis-proj-bar-track {
-            width: 110px; height: 6px; background: #e2e8f0;
-            border-radius: 999px; overflow: hidden;
-        }
-        .analisis-proj-bar-fill {
-            height: 100%; border-radius: inherit;
-            transition: width 1s ease;
-        }
-        .analisis-cat-card--casas .analisis-proj-bar-fill { background: #0ea5e9; }
-        .analisis-cat-card--lotes .analisis-proj-bar-fill { background: #10b981; }
-        .analisis-proj-pct {
-            font-size: 0.72rem; font-weight: 800; color: var(--navy);
-            min-width: 44px; text-align: right;
-        }
-        @media (max-width: 900px) {
-            .analisis-cat-card { flex-direction: column; }
-            .analisis-cat-left { max-width: 100%; padding-right: 0; }
-            .analisis-cat-divider { width: 100%; height: 1px; margin: 20px 0; }
-            .analisis-proj-bar-track { width: 80px; }
+            border-top: 3px solid transparent;
         }
         .analisis-cat-card--casas { border-top-color: #0ea5e9; }
         .analisis-cat-card--lotes { border-top-color: #10b981; }
@@ -770,8 +721,7 @@
             display: flex; align-items: center; justify-content: center;
             min-width: 0;
         }
-        .analisis-cat-card--casas .analisis-stack-seg--asig { background: #0ea5e9; }
-        .analisis-cat-card--lotes .analisis-stack-seg--asig { background: #10b981; }
+        .analisis-stack-seg--asig { background: var(--ng); }
         .analisis-stack-seg--disp { background: #e2e8f0; }
         .analisis-stack-legend {
             display: flex; gap: 14px; margin-top: 9px; align-items: center;
@@ -784,8 +734,7 @@
         .analisis-stack-dot {
             width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
         }
-        .analisis-cat-card--casas .analisis-stack-dot--asig { background: #0ea5e9; }
-        .analisis-cat-card--lotes .analisis-stack-dot--asig { background: #10b981; }
+        .analisis-stack-dot--asig { background: var(--ng); }
         .analisis-stack-dot--disp { background: #cbd5e1; }
 
         @media (max-width: 768px) {
@@ -971,85 +920,69 @@
     </div>
     <div class="analisis-cat-grid">
         <div class="analisis-cat-card analisis-cat-card--casas">
-            <div class="analisis-cat-left">
-                <div class="analisis-cat-header">🏠 Casas</div>
-                <div class="analisis-cat-count">6</div>
-                <div class="analisis-cat-sub">Proyectos en ejecución</div>
-                <div class="analisis-metrics-row">
-                    <div class="analisis-metric">
-                        <div class="analisis-metric-lbl">Presupuesto</div>
-                        <div class="analisis-metric-val" id="analisisCasasPpto">—</div>
-                    </div>
-                    <div class="analisis-metric">
-                        <div class="analisis-metric-lbl">Asignado</div>
-                        <div class="analisis-metric-val" id="analisisCasasAsig">—</div>
-                    </div>
-                    <div class="analisis-metric">
-                        <div class="analisis-metric-lbl">% Asignado</div>
-                        <div class="analisis-metric-val analisis-metric-val--pct" id="analisisCasasPct">—</div>
-                    </div>
+            <div class="analisis-cat-header">🏠 Casas</div>
+            <div class="analisis-cat-count">6</div>
+            <div class="analisis-cat-sub">Proyectos en ejecución</div>
+            <div class="analisis-metrics-row">
+                <div class="analisis-metric">
+                    <div class="analisis-metric-lbl">Presupuesto</div>
+                    <div class="analisis-metric-val" id="analisisCasasPpto">—</div>
                 </div>
-                <div class="analisis-stack-wrap">
-                    <div class="analisis-stack-labels">
-                        <div class="analisis-stack-lbl" id="analisisCasasBarAsigLbl">—<span>Asignado</span></div>
-                        <div class="analisis-stack-lbl" id="analisisCasasBarDispLbl">—<span>Disponible</span></div>
-                    </div>
-                    <div class="analisis-stack-bar">
-                        <div class="analisis-stack-seg analisis-stack-seg--asig" id="analisisCasasBarAsig" style="width:0%"></div>
-                        <div class="analisis-stack-seg analisis-stack-seg--disp" id="analisisCasasBarDisp" style="width:100%"></div>
-                    </div>
-                    <div class="analisis-stack-legend">
-                        <div class="analisis-stack-legend-item"><span class="analisis-stack-dot analisis-stack-dot--asig"></span>Asignado</div>
-                        <div class="analisis-stack-legend-item"><span class="analisis-stack-dot analisis-stack-dot--disp"></span>Disponible</div>
-                    </div>
+                <div class="analisis-metric">
+                    <div class="analisis-metric-lbl">Asignado</div>
+                    <div class="analisis-metric-val" id="analisisCasasAsig">—</div>
+                </div>
+                <div class="analisis-metric">
+                    <div class="analisis-metric-lbl">% Asignado</div>
+                    <div class="analisis-metric-val analisis-metric-val--pct" id="analisisCasasPct">—</div>
                 </div>
             </div>
-            <div class="analisis-cat-divider"></div>
-            <div class="analisis-cat-right">
-                <div class="analisis-proj-title">Asignación por proyecto</div>
-                <div class="analisis-proj-sub">% asignado por proyecto</div>
-                <div id="analisisCasasProjList"></div>
+            <div class="analisis-stack-wrap">
+                <div class="analisis-stack-labels">
+                    <div class="analisis-stack-lbl" id="analisisCasasBarAsigLbl">—<span>Asignado</span></div>
+                    <div class="analisis-stack-lbl" id="analisisCasasBarDispLbl">—<span>Disponible</span></div>
+                </div>
+                <div class="analisis-stack-bar">
+                    <div class="analisis-stack-seg analisis-stack-seg--asig" id="analisisCasasBarAsig" style="width:0%"></div>
+                    <div class="analisis-stack-seg analisis-stack-seg--disp" id="analisisCasasBarDisp" style="width:100%"></div>
+                </div>
+                <div class="analisis-stack-legend">
+                    <div class="analisis-stack-legend-item"><span class="analisis-stack-dot analisis-stack-dot--asig"></span>Asignado</div>
+                    <div class="analisis-stack-legend-item"><span class="analisis-stack-dot analisis-stack-dot--disp"></span>Disponible</div>
+                </div>
             </div>
         </div>
         <div class="analisis-cat-card analisis-cat-card--lotes">
-            <div class="analisis-cat-left">
-                <div class="analisis-cat-header">🌿 Lotes</div>
-                <div class="analisis-cat-count">2</div>
-                <div class="analisis-cat-sub">Proyectos en ejecución</div>
-                <div class="analisis-metrics-row">
-                    <div class="analisis-metric">
-                        <div class="analisis-metric-lbl">Presupuesto</div>
-                        <div class="analisis-metric-val" id="analisisLotesPpto">—</div>
-                    </div>
-                    <div class="analisis-metric">
-                        <div class="analisis-metric-lbl">Asignado</div>
-                        <div class="analisis-metric-val" id="analisisLotesAsig">—</div>
-                    </div>
-                    <div class="analisis-metric">
-                        <div class="analisis-metric-lbl">% Asignado</div>
-                        <div class="analisis-metric-val analisis-metric-val--pct" id="analisisLotesPct">—</div>
-                    </div>
+            <div class="analisis-cat-header">🌿 Lotes</div>
+            <div class="analisis-cat-count">2</div>
+            <div class="analisis-cat-sub">Proyectos en ejecución</div>
+            <div class="analisis-metrics-row">
+                <div class="analisis-metric">
+                    <div class="analisis-metric-lbl">Presupuesto</div>
+                    <div class="analisis-metric-val" id="analisisLotesPpto">—</div>
                 </div>
-                <div class="analisis-stack-wrap">
-                    <div class="analisis-stack-labels">
-                        <div class="analisis-stack-lbl" id="analisisLotesBarAsigLbl">—<span>Asignado</span></div>
-                        <div class="analisis-stack-lbl" id="analisisLotesBarDispLbl">—<span>Disponible</span></div>
-                    </div>
-                    <div class="analisis-stack-bar">
-                        <div class="analisis-stack-seg analisis-stack-seg--asig" id="analisisLotesBarAsig" style="width:0%"></div>
-                        <div class="analisis-stack-seg analisis-stack-seg--disp" id="analisisLotesBarDisp" style="width:100%"></div>
-                    </div>
-                    <div class="analisis-stack-legend">
-                        <div class="analisis-stack-legend-item"><span class="analisis-stack-dot analisis-stack-dot--asig"></span>Asignado</div>
-                        <div class="analisis-stack-legend-item"><span class="analisis-stack-dot analisis-stack-dot--disp"></span>Disponible</div>
-                    </div>
+                <div class="analisis-metric">
+                    <div class="analisis-metric-lbl">Asignado</div>
+                    <div class="analisis-metric-val" id="analisisLotesAsig">—</div>
+                </div>
+                <div class="analisis-metric">
+                    <div class="analisis-metric-lbl">% Asignado</div>
+                    <div class="analisis-metric-val analisis-metric-val--pct" id="analisisLotesPct">—</div>
                 </div>
             </div>
-            <div class="analisis-cat-divider"></div>
-            <div class="analisis-cat-right">
-                <div class="analisis-proj-title">Asignación por proyecto</div>
-                <div class="analisis-proj-sub">% asignado por proyecto</div>
-                <div id="analisisLotesProjList"></div>
+            <div class="analisis-stack-wrap">
+                <div class="analisis-stack-labels">
+                    <div class="analisis-stack-lbl" id="analisisLotesBarAsigLbl">—<span>Asignado</span></div>
+                    <div class="analisis-stack-lbl" id="analisisLotesBarDispLbl">—<span>Disponible</span></div>
+                </div>
+                <div class="analisis-stack-bar">
+                    <div class="analisis-stack-seg analisis-stack-seg--asig" id="analisisLotesBarAsig" style="width:0%"></div>
+                    <div class="analisis-stack-seg analisis-stack-seg--disp" id="analisisLotesBarDisp" style="width:100%"></div>
+                </div>
+                <div class="analisis-stack-legend">
+                    <div class="analisis-stack-legend-item"><span class="analisis-stack-dot analisis-stack-dot--asig"></span>Asignado</div>
+                    <div class="analisis-stack-legend-item"><span class="analisis-stack-dot analisis-stack-dot--disp"></span>Disponible</div>
+                </div>
             </div>
         </div>
     </div>
@@ -1551,22 +1484,6 @@
         setBar('analisisCasas', casasAsig, casasPpto);
         setBar('analisisLotes', lotesAsig, lotesPpto);
 
-        const renderProjBars = (listId, projects) => {
-            const el = document.getElementById(listId);
-            if (!el) return;
-            el.innerHTML = projects.map(p => {
-                const ppto = p.sapSummary.presupuestoSap || 0;
-                const asig = p.sapSummary.asignado || 0;
-                const pct = ppto ? (asig / ppto * 100) : 0;
-                return `<div class="analisis-proj-row">
-                    <div class="analisis-proj-name">${p.name}</div>
-                    <div class="analisis-proj-bar-track"><div class="analisis-proj-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
-                    <div class="analisis-proj-pct">${pct.toFixed(2)}%</div>
-                </div>`;
-            }).join('');
-        };
-        renderProjBars('analisisCasasProjList', casas);
-        renderProjBars('analisisLotesProjList', lotes);
     }
 
     function renderLotesTotalBar() {
