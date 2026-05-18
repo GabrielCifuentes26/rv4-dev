@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis Lotes — Costos&Presupuestos</title>
+    <style>html{visibility:hidden}</style>
+    <script>
+    (function(){
+        try {
+            var s=JSON.parse(localStorage.getItem('sb-iipgrojliqeyycvgnkrc-auth-token')||'null');
+            if(s&&s.access_token&&(!s.expires_at||Date.now()/1000<s.expires_at)){
+                document.documentElement.style.visibility='visible';
+            } else { window.location.replace('login.html'); }
+        } catch(e){ window.location.replace('login.html'); }
+    })();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const { createClient } = supabase;
+        const client = createClient(
+            'https://iipgrojliqeyycvgnkrc.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpcGdyb2psaXFleXljdmdua3JjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NzA1NzYsImV4cCI6MjA5MTM0NjU3Nn0.Y6FQ-1qWd7HPMvTnK4alpKxM-YLJ5CsKmkorAZKMJrg'
+        );
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('btn-logout').addEventListener('click', () => {
+                client.auth.signOut().then(() => window.location.href = 'login.html');
+            });
+        });
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', 'Segoe UI', sans-serif; background: #f0f4f8; color: #0f172a; min-height: 100vh; }
+
+        .topbar {
+            position: sticky; top: 0; z-index: 300;
+            background: #0f172a;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            padding: 0 22px; height: 56px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 16px rgba(15,23,42,0.25);
+        }
+        .topbar::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent 0%, #C9A84C 35%, #C9A84C 65%, transparent 100%);
+        }
+        .topbar-left { display: flex; align-items: center; }
+        .home-link {
+            display: flex; align-items: center; justify-content: center;
+            width: 36px; height: 36px; border-radius: 8px;
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.6); text-decoration: none;
+            transition: background .18s, color .18s; flex-shrink: 0; margin-right: 14px;
+        }
+        .home-link:hover { background: #C9A84C; color: #fff; border-color: #C9A84C; }
+        .home-link svg { width: 15px; height: 15px; fill: currentColor; }
+        .brand-link { text-decoration: none; color: inherit; }
+        .brand-link:hover .topbar-brand { color: #C9A84C; transition: color .18s; }
+        .topbar-brand { font-size: 0.95rem; font-weight: 900; color: #fff; letter-spacing: 0.5px; }
+        .topbar-brand span { color: #C9A84C; }
+        .topbar-sub { font-size: 0.62rem; color: rgba(255,255,255,0.38); margin-top: 1px; letter-spacing: 0.2px; }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+        .btn-logout {
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.30);
+            color: #f87171; padding: 5px 14px; border-radius: 7px;
+            font-size: 0.72rem; font-weight: 700; cursor: pointer;
+            font-family: inherit; transition: background .18s, border-color .18s, color .18s;
+        }
+        .btn-logout:hover { background: rgba(239,68,68,0.22); border-color: rgba(239,68,68,0.55); color: #fca5a5; }
+        .btn-logout svg { width: 13px; height: 13px; fill: currentColor; }
+
+        .page-content {
+            display: flex; align-items: center; justify-content: center;
+            min-height: calc(100vh - 56px);
+            color: #94a3b8; font-size: 0.9rem; font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="home-link">
+                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            </a>
+            <a href="index.html" class="brand-link">
+                <div class="topbar-brand">Costos&<span>Presupuestos</span></div>
+                <div class="topbar-sub">Análisis — Lotes</div>
+            </a>
+        </div>
+        <div class="topbar-right">
+            <button class="btn-logout" id="btn-logout">
+                <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+                Salir
+            </button>
+        </div>
+    </div>
+    <div class="page-content">Página en construcción</div>
+</body>
+</html>

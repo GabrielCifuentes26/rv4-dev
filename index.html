@@ -678,8 +678,22 @@
             display: flex; flex-direction: column; gap: 4px;
             border-top: 3px solid transparent;
         }
-        .analisis-cat-card--casas { border-top-color: #0ea5e9; }
-        .analisis-cat-card--lotes { border-top-color: #10b981; }
+        .analisis-cat-card--casas,
+        .analisis-cat-card--lotes { border-top-color: #C9A84C; }
+        .analisis-ver-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            margin-top: 18px; align-self: flex-start;
+            font-size: 0.72rem; font-weight: 800; letter-spacing: 0.3px;
+            color: #8a6a1a;
+            background: rgba(201,168,76,0.12); border: 1px solid rgba(201,168,76,0.35);
+            border-radius: 8px; padding: 7px 14px;
+            text-decoration: none; cursor: pointer;
+            transition: background .18s, color .18s, box-shadow .18s, border-color .18s;
+        }
+        .analisis-ver-btn:hover {
+            background: #C9A84C; color: #fff; border-color: #C9A84C;
+            box-shadow: 0 0 16px rgba(201,168,76,0.45);
+        }
         .analisis-cat-header {
             font-size: 0.7rem; font-weight: 800; letter-spacing: 2px;
             text-transform: uppercase; color: var(--gray); margin-bottom: 6px;
@@ -951,6 +965,7 @@
                     <div class="analisis-stack-legend-item"><span class="analisis-stack-dot analisis-stack-dot--disp"></span>Disponible</div>
                 </div>
             </div>
+            <a href="analisis-casas.html" class="analisis-ver-btn">Ver análisis →</a>
         </div>
         <div class="analisis-cat-card analisis-cat-card--lotes">
             <div class="analisis-cat-header">🌿 Lotes</div>
@@ -984,6 +999,7 @@
                     <div class="analisis-stack-legend-item"><span class="analisis-stack-dot analisis-stack-dot--disp"></span>Disponible</div>
                 </div>
             </div>
+            <a href="analisis-lotes.html" class="analisis-ver-btn">Ver análisis →</a>
         </div>
     </div>
 </section>
