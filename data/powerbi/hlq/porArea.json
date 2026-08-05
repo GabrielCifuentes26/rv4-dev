@@ -5,12 +5,12 @@
                      "dimSegmentación[Area]":  "CONSTRUCCIÓN",
                      "[RdiTotal]":  18797646.200423989,
                      "[PresupuestoErequester]":  18797646.200423989,
-                     "[EjecutadoErequester]":  7568886.6049429877,
-                     "[ComprometidoErequester]":  2307441.2164079458,
-                     "[AsignadoErequester]":  9876327.821350934,
-                     "[DisponibleErequester]":  8921318.3790730555,
-                     "[PorcentajeAsignado]":  0.52540236772453819,
-                     "[PorcentajeDisponible]":  0.47459763227546176
+                     "[EjecutadoErequester]":  7745674.7694482105,
+                     "[ComprometidoErequester]":  2152082.5019027246,
+                     "[AsignadoErequester]":  9897757.2713509351,
+                     "[DisponibleErequester]":  8899888.9290730543,
+                     "[PorcentajeAsignado]":  0.5265423748175283,
+                     "[PorcentajeDisponible]":  0.4734576251824717
                  },
                  {
                      "dimSegmentación[Area]":  "FUERA DE PROYECTO",
@@ -27,16 +27,16 @@
                      "dimSegmentación[Area]":  "URBANIZACIÓN",
                      "[RdiTotal]":  35090091.027019426,
                      "[PresupuestoErequester]":  35090091.027019426,
-                     "[EjecutadoErequester]":  10071578.536802504,
-                     "[ComprometidoErequester]":  1348075.4654049994,
-                     "[AsignadoErequester]":  11419654.002207503,
-                     "[DisponibleErequester]":  23670437.024811924,
-                     "[PorcentajeAsignado]":  0.32543814130930443,
-                     "[PorcentajeDisponible]":  0.67456185869069563
+                     "[EjecutadoErequester]":  10094998.5324025,
+                     "[ComprometidoErequester]":  1345357.8964329995,
+                     "[AsignadoErequester]":  11440356.4288355,
+                     "[DisponibleErequester]":  23649734.598183926,
+                     "[PorcentajeAsignado]":  0.32602812058898356,
+                     "[PorcentajeDisponible]":  0.67397187941101644
                  }
              ],
     "metadata":  {
-                     "generatedAt":  "2026-08-04T15:17:32.4595874Z",
+                     "generatedAt":  "2026-08-05T14:31:10.7481955Z",
                      "workspaceId":  "d111fc11-b7f3-4976-b74b-99f47f06bd22",
                      "reportId":  "6730fdd5-86c6-4bac-9dd4-7443c877377a",
                      "datasetId":  "40fefec2-d0df-4146-bce3-1a4b6bffeaeb",
