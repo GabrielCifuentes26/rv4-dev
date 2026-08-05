@@ -1,6 +1,6 @@
 {
     "metadata":  {
-                     "generatedAt":  "2026-08-05T00:07:05.0770750Z",
+                     "generatedAt":  "2026-08-05T14:36:39.8742791Z",
                      "workspaceId":  "d111fc11-b7f3-4976-b74b-99f47f06bd22",
                      "reportId":  "f3fdef8d-947a-4e1a-9188-c774420fde9c",
                      "datasetId":  "c794678f-11ea-40eb-ad76-bdf4603191be",
@@ -27,6 +27,30 @@
                                          "[DisponibleErequester]":  55062346.637165144,
                                          "[PorcentajeAsignado]":  0.50316679439955247,
                                          "[PorcentajeDisponible]":  0.49683320560044758
+                                     }
+                                 ],
+                     "porArea":  [
+                                     {
+                                         "dimSegmentación[Area]":  "CONSTRUCCIÓN",
+                                         "[RdiTotal]":  68271426.317599,
+                                         "[PresupuestoErequester]":  68271426.317599,
+                                         "[EjecutadoErequester]":  22602268.756252151,
+                                         "[ComprometidoErequester]":  5035754.1127854129,
+                                         "[AsignadoErequester]":  27638022.869037565,
+                                         "[DisponibleErequester]":  40633403.44856143,
+                                         "[PorcentajeAsignado]":  0.40482562559137625,
+                                         "[PorcentajeDisponible]":  0.59517437440862364
+                                     },
+                                     {
+                                         "dimSegmentación[Area]":  "URBANIZACIÓN",
+                                         "[RdiTotal]":  42555197.218200549,
+                                         "[PresupuestoErequester]":  42555197.218200549,
+                                         "[EjecutadoErequester]":  24857773.468306109,
+                                         "[ComprometidoErequester]":  3268480.5612903694,
+                                         "[AsignadoErequester]":  28126254.029596478,
+                                         "[DisponibleErequester]":  14428943.188604072,
+                                         "[PorcentajeAsignado]":  0.66093581673185342,
+                                         "[PorcentajeDisponible]":  0.33906418326814658
                                      }
                                  ],
                      "porEtapa":  [
@@ -60610,9 +60634,6 @@
                                         ]
                  },
     "errors":  [
-                   {
-                       "message":  "Se han producido uno o varios errores.\nError al enviar la solicitud.\nSe ha terminado la conexión: Error inesperado de recepción.\nNo se puede escribir datos de en la conexión de transporte: Se ha forzado la interrupción de una conexión existente por el host remoto.\nSe ha forzado la interrupción de una conexión existente por el host remoto\n\r\n\r\nPSMessageDetails      : \r\nException             : System.AggregateException: Se han producido uno o varios errores. ---\u003e \r\n                        System.Net.Http.HttpRequestException: Error al enviar la solicitud. ---\u003e \r\n                        System.Net.WebException: Se ha terminado la conexión: Error inesperado de recepción. ---\u003e \r\n                        System.IO.IOException: No se puede escribir datos de en la conexión de transporte: Se ha \r\n                        forzado la interrupción de una conexión existente por el host remoto. ---\u003e \r\n                        System.Net.Sockets.SocketException: Se ha forzado la interrupción de una conexión existente \r\n                        por el host remoto\r\n                           en System.Net.Sockets.Socket.BeginReceive(Byte[] buffer, Int32 offset, Int32 size, \r\n                        SocketFlags socketFlags, AsyncCallback callback, Object state)\r\n                           en System.Net.Sockets.NetworkStream.BeginRead(Byte[] buffer, Int32 offset, Int32 size, \r\n                        AsyncCallback callback, Object state)\r\n                           --- Fin del seguimiento de la pila de la excepción interna ---\r\n                           en System.Net.Security._SslStream.EndRead(IAsyncResult asyncResult)\r\n                           en System.Net.TlsStream.EndRead(IAsyncResult asyncResult)\r\n                           en System.Net.Connection.ReadCallback(IAsyncResult asyncResult)\r\n                           --- Fin del seguimiento de la pila de la excepción interna ---\r\n                           en System.Net.HttpWebRequest.EndGetResponse(IAsyncResult asyncResult)\r\n                           en System.Net.Http.HttpClientHandler.GetResponseCallback(IAsyncResult ar)\r\n                           --- Fin del seguimiento de la pila de la excepción interna ---\r\n                           en System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\r\n                           en System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task \r\n                        task)\r\n                           en \r\n                        Microsoft.PowerBI.Commands.Profile.InvokePowerBIRestMethod.\u003cInvokeRestMethod\u003ed__35.MoveNext()\r\n                           --- Fin del seguimiento de la pila de la excepción interna ---\r\n                           en System.Threading.Tasks.Task`1.GetResultCore(Boolean waitCompletionNotification)\r\n                           en Microsoft.PowerBI.Commands.Profile.InvokePowerBIRestMethod.ExecuteCmdlet()\r\n                           en Microsoft.PowerBI.Commands.Common.PowerBICmdlet.ProcessRecord()\r\n                        ---\u003e (Nº de excepción interna 0) System.Net.Http.HttpRequestException: Error al enviar la \r\n                        solicitud. ---\u003e System.Net.WebException: Se ha terminado la conexión: Error inesperado de \r\n                        recepción. ---\u003e System.IO.IOException: No se puede escribir datos de en la conexión de \r\n                        transporte: Se ha forzado la interrupción de una conexión existente por el host remoto. ---\u003e \r\n                        System.Net.Sockets.SocketException: Se ha forzado la interrupción de una conexión existente \r\n                        por el host remoto\r\n                           en System.Net.Sockets.Socket.BeginReceive(Byte[] buffer, Int32 offset, Int32 size, \r\n                        SocketFlags socketFlags, AsyncCallback callback, Object state)\r\n                           en System.Net.Sockets.NetworkStream.BeginRead(Byte[] buffer, Int32 offset, Int32 size, \r\n                        AsyncCallback callback, Object state)\r\n                           --- Fin del seguimiento de la pila de la excepción interna ---\r\n                           en System.Net.Security._SslStream.EndRead(IAsyncResult asyncResult)\r\n                           en System.Net.TlsStream.EndRead(IAsyncResult asyncResult)\r\n                           en System.Net.Connection.ReadCallback(IAsyncResult asyncResult)\r\n                           --- Fin del seguimiento de la pila de la excepción interna ---\r\n                           en System.Net.HttpWebRequest.EndGetResponse(IAsyncResult asyncResult)\r\n                           en System.Net.Http.HttpClientHandler.GetResponseCallback(IAsyncResult ar)\r\n                           --- Fin del seguimiento de la pila de la excepción interna ---\r\n                           en System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\r\n                           en System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task \r\n                        task)\r\n                           en Microsoft.PowerBI.Commands.Profile.InvokePowerBIRestMethod.\u003cInvokeRestMethod\u003ed__35.MoveNe\r\n                        xt()\u003c---\r\n                        \r\nTargetObject          : Microsoft.PowerBI.Commands.Profile.InvokePowerBIRestMethod\r\nCategoryInfo          : WriteError: (Microsoft.Power...werBIRestMethod:InvokePowerBIRestMethod) \r\n                        [Invoke-PowerBIRestMethod], AggregateException\r\nFullyQualifiedErrorId : Se han producido uno o varios \r\n                        errores.,Microsoft.PowerBI.Commands.Profile.InvokePowerBIRestMethod\r\nErrorDetails          : \r\nInvocationInfo        : System.Management.Automation.InvocationInfo\r\nScriptStackTrace      : en Invoke-PowerBIDaxQuery, C:\\Users\\gcifuentes\\OneDrive - rvcuatro.com\\Documentos\\12. Paginas \r\n                        Web\\01.Pagina Web C\u0026P\\tools\\powerbi\\sync-powerbi-resumen.ps1: línea 80\r\n                        en \u003cScriptBlock\u003e, C:\\Users\\gcifuentes\\OneDrive - rvcuatro.com\\Documentos\\12. Paginas \r\n                        Web\\01.Pagina Web C\u0026P\\tools\\powerbi\\sync-powerbi-resumen.ps1: línea 508\r\n                        en \u003cScriptBlock\u003e, C:\\Users\\gcifuentes\\OneDrive - rvcuatro.com\\Documentos\\12. Paginas \r\n                        Web\\01.Pagina Web C\u0026P\\tools\\powerbi\\sync-powerbi-rdb.ps1: línea 29\r\n                        en \u003cScriptBlock\u003e, C:\\Users\\gcifuentes\\OneDrive - rvcuatro.com\\Documentos\\12. Paginas \r\n                        Web\\01.Pagina Web C\u0026P\\tools\\sync\\sync-all-projects.ps1: línea 90\r\nPipelineIterationInfo : {}\r\n\r\n\r\n\r\n",
-                       "name":  "porArea"
-                   }
+
                ]
 }
