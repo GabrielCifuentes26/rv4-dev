@@ -3,17 +3,17 @@
     "rows":  [
                  {
                      "[RdiTotal]":  115122008.761931,
-                     "[PresupuestoErequester]":  159112410.21399996,
-                     "[EjecutadoErequester]":  151983857.59399995,
-                     "[ComprometidoErequester]":  4766123.596,
-                     "[AsignadoErequester]":  156749981.19,
-                     "[DisponibleErequester]":  2362429.024,
-                     "[PorcentajeAsignado]":  0.98515245277962549,
-                     "[PorcentajeDisponible]":  0.014847547220374738
+                     "[PresupuestoErequester]":  159114895.974,
+                     "[EjecutadoErequester]":  152152803.35399997,
+                     "[ComprometidoErequester]":  4601090.296,
+                     "[AsignadoErequester]":  156753893.65,
+                     "[DisponibleErequester]":  2361002.324,
+                     "[PorcentajeAsignado]":  0.98516165121092247,
+                     "[PorcentajeDisponible]":  0.014838348789077528
                  }
              ],
     "metadata":  {
-                     "generatedAt":  "2026-08-04T16:19:22.0163199Z",
+                     "generatedAt":  "2026-08-07T21:30:43.7028036Z",
                      "workspaceId":  "d111fc11-b7f3-4976-b74b-99f47f06bd22",
                      "reportId":  "f3fdef8d-947a-4e1a-9188-c774420fde9c",
                      "datasetId":  "245c5962-1238-43bb-88ba-5dce10fbbfab",
@@ -27,7 +27,7 @@
                                                    "COSTO INDIRECTO",
                                                    "PRELIMINAR"
                                                ],
-                                     "mesA":  "jul 26"
+                                     "mesA":  "ago 26"
                                  },
                      "source":  "Power BI Service"
                  }

@@ -5,27 +5,27 @@
                      "dimSegmentación[Area]":  "CONSTRUCCIÓN",
                      "[RdiTotal]":  68271426.317599,
                      "[PresupuestoErequester]":  68271426.317599,
-                     "[EjecutadoErequester]":  22602268.756252151,
-                     "[ComprometidoErequester]":  5035754.1127854129,
-                     "[AsignadoErequester]":  27638022.869037565,
-                     "[DisponibleErequester]":  40633403.44856143,
-                     "[PorcentajeAsignado]":  0.40482562559137625,
-                     "[PorcentajeDisponible]":  0.59517437440862364
+                     "[EjecutadoErequester]":  22987497.487405464,
+                     "[ComprometidoErequester]":  4752416.4516321141,
+                     "[AsignadoErequester]":  27739913.939037576,
+                     "[DisponibleErequester]":  40531512.378561422,
+                     "[PorcentajeAsignado]":  0.40631806650693608,
+                     "[PorcentajeDisponible]":  0.59368193349306386
                  },
                  {
                      "dimSegmentación[Area]":  "URBANIZACIÓN",
                      "[RdiTotal]":  42555197.218200549,
                      "[PresupuestoErequester]":  42555197.218200549,
-                     "[EjecutadoErequester]":  24857773.468306109,
-                     "[ComprometidoErequester]":  3268480.5612903694,
-                     "[AsignadoErequester]":  28126254.029596478,
-                     "[DisponibleErequester]":  14428943.188604072,
-                     "[PorcentajeAsignado]":  0.66093581673185342,
-                     "[PorcentajeDisponible]":  0.33906418326814658
+                     "[EjecutadoErequester]":  24936040.677652113,
+                     "[ComprometidoErequester]":  3215938.4419443686,
+                     "[AsignadoErequester]":  28151979.119596481,
+                     "[DisponibleErequester]":  14403218.098604068,
+                     "[PorcentajeAsignado]":  0.66154032785344685,
+                     "[PorcentajeDisponible]":  0.33845967214655315
                  }
              ],
     "metadata":  {
-                     "generatedAt":  "2026-08-06T21:36:47.2302553Z",
+                     "generatedAt":  "2026-08-07T21:31:11.6566798Z",
                      "workspaceId":  "d111fc11-b7f3-4976-b74b-99f47f06bd22",
                      "reportId":  "f3fdef8d-947a-4e1a-9188-c774420fde9c",
                      "datasetId":  "c794678f-11ea-40eb-ad76-bdf4603191be",
