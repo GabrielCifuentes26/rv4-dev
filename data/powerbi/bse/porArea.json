@@ -4,28 +4,28 @@
                  {
                      "Rubros[Area]":  "Construcción",
                      "[RdiTotal]":  126877474.2141269,
-                     "[PresupuestoErequester]":  124475144.03600009,
-                     "[EjecutadoErequester]":  105789414.39400005,
-                     "[ComprometidoErequester]":  14439797.341999991,
-                     "[AsignadoErequester]":  120229211.73600005,
-                     "[DisponibleErequester]":  4245932.2999999952,
-                     "[PorcentajeAsignado]":  0.9658893160326687,
-                     "[PorcentajeDisponible]":  0.03411068396733092
+                     "[PresupuestoErequester]":  124482230.30600005,
+                     "[EjecutadoErequester]":  107955979.96400003,
+                     "[ComprometidoErequester]":  11851942.851999985,
+                     "[AsignadoErequester]":  119807922.81600003,
+                     "[DisponibleErequester]":  4674307.4899999993,
+                     "[PorcentajeAsignado]":  0.96245000207250686,
+                     "[PorcentajeDisponible]":  0.037549997927492924
                  },
                  {
                      "Rubros[Area]":  "Urbanización",
                      "[RdiTotal]":  35199841.673567764,
-                     "[PresupuestoErequester]":  38217247.906000033,
-                     "[EjecutadoErequester]":  34228854.418000013,
-                     "[ComprometidoErequester]":  4091560.7679999992,
-                     "[AsignadoErequester]":  38320415.186000027,
-                     "[DisponibleErequester]":  -103167.27999999927,
-                     "[PorcentajeAsignado]":  1.0026994952711861,
-                     "[PorcentajeDisponible]":  -0.0026994952711862385
+                     "[PresupuestoErequester]":  38210161.636000022,
+                     "[EjecutadoErequester]":  34264288.558000013,
+                     "[ComprometidoErequester]":  2702403.5379999983,
+                     "[AsignadoErequester]":  36966692.096000016,
+                     "[DisponibleErequester]":  1243469.5400000007,
+                     "[PorcentajeAsignado]":  0.967457098144582,
+                     "[PorcentajeDisponible]":  0.03254290185541784
                  }
              ],
     "metadata":  {
-                     "generatedAt":  "2026-08-04T16:18:51.0410899Z",
+                     "generatedAt":  "2026-08-18T00:00:29.1618610Z",
                      "workspaceId":  "d111fc11-b7f3-4976-b74b-99f47f06bd22",
                      "reportId":  "f3fdef8d-947a-4e1a-9188-c774420fde9c",
                      "datasetId":  "68161d1e-2ef3-4916-a65c-3e86d4abb2bc",
@@ -37,7 +37,7 @@
                                                    "CONSTRUCCIÓN",
                                                    "URBANIZACIÓN"
                                                ],
-                                     "mesA":  "jul 26"
+                                     "mesA":  "ago 26"
                                  },
                      "source":  "Power BI Service"
                  }
