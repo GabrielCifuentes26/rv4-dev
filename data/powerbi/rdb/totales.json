@@ -2,18 +2,18 @@
     "name":  "totales",
     "rows":  [
                  {
-                     "[RdiTotal]":  110874443.77178402,
-                     "[PresupuestoErequester]":  110874443.77178402,
-                     "[EjecutadoErequester]":  49254663.542502463,
-                     "[ComprometidoErequester]":  8492405.1061615665,
-                     "[AsignadoErequester]":  57747068.648664027,
-                     "[DisponibleErequester]":  53127375.123119995,
-                     "[PorcentajeAsignado]":  0.52083299527099713,
-                     "[PorcentajeDisponible]":  0.47916700472900287
+                     "[RdiTotal]":  110874442.65173754,
+                     "[PresupuestoErequester]":  110874442.65173754,
+                     "[EjecutadoErequester]":  49452845.519099273,
+                     "[ComprometidoErequester]":  8458837.2320697736,
+                     "[AsignadoErequester]":  57911682.751169041,
+                     "[DisponibleErequester]":  52962759.900568493,
+                     "[PorcentajeAsignado]":  0.52231768986720128,
+                     "[PorcentajeDisponible]":  0.47768231013279872
                  }
              ],
     "metadata":  {
-                     "generatedAt":  "2026-08-26T14:57:00.8753495Z",
+                     "generatedAt":  "2026-09-01T14:55:51.9823014Z",
                      "workspaceId":  "d111fc11-b7f3-4976-b74b-99f47f06bd22",
                      "reportId":  "f3fdef8d-947a-4e1a-9188-c774420fde9c",
                      "datasetId":  "c794678f-11ea-40eb-ad76-bdf4603191be",
@@ -25,7 +25,7 @@
                                                    "CONSTRUCCIÓN",
                                                    "URBANIZACIÓN"
                                                ],
-                                     "mesA":  "ago 26"
+                                     "mesA":  "sep 26"
                                  },
                      "source":  "Power BI Service"
                  }
